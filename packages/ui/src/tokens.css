@@ -1,0 +1,61 @@
+:root {
+  --rs-surface: #fdf8f8;
+  --rs-surface-dim: #ddd9d8;
+  --rs-surface-bright: #fdf8f8;
+  --rs-surface-container-lowest: #ffffff;
+  --rs-surface-container-low: #f7f3f2;
+  --rs-surface-container: #f1edec;
+  --rs-surface-container-high: #ebe7e6;
+  --rs-surface-container-highest: #e5e2e1;
+  --rs-on-surface: #1c1b1b;
+  --rs-on-surface-variant: #444748;
+  --rs-inverse-surface: #313030;
+  --rs-inverse-on-surface: #f4f0ef;
+  --rs-outline: #747878;
+  --rs-outline-variant: #c4c7c7;
+
+  --rs-primary: #000000;
+  --rs-on-primary: #ffffff;
+  --rs-primary-container: #1c1b1b;
+  --rs-on-primary-container: #858383;
+
+  --rs-secondary: #875200;
+  --rs-on-secondary: #ffffff;
+  --rs-secondary-container: #ffb151;
+  --rs-on-secondary-container: #724400;
+
+  --rs-tertiary: #000000;
+  --rs-on-tertiary: #ffffff;
+
+  --rs-error: #ba1a1a;
+  --rs-on-error: #ffffff;
+  --rs-error-container: #ffdad6;
+  --rs-on-error-container: #93000a;
+
+  --rs-secondary-fixed: #ffddba;
+  --rs-secondary-fixed-dim: #ffb866;
+
+  --rs-status-placed: #6b7280;
+  --rs-status-confirmed: #3b82f6;
+  --rs-status-shipping: #f59e0b;
+  --rs-status-delivered: #10b981;
+  --rs-danger: #991b1b;
+
+  --rs-ambient-shadow: 0px 10px 30px rgba(0, 0, 0, 0.08);
+
+  --rs-radius-sm: 0.125rem;
+  --rs-radius: 0.25rem;
+  --rs-radius-md: 0.375rem;
+  --rs-radius-lg: 0.5rem;
+  --rs-radius-xl: 0.75rem;
+  --rs-radius-full: 9999px;
+
+  --rs-spacing-base: 8px;
+  --rs-container-max: 1280px;
+  --rs-gutter: 24px;
+  --rs-margin-mobile: 16px;
+  --rs-margin-desktop: 40px;
+
+  --rs-font-display: 'Libre Caslon Text', Georgia, 'Times New Roman', serif;
+  --rs-font-sans: 'Hanken Grotesk', system-ui, -apple-system, sans-serif;
+}

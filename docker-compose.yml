@@ -1,0 +1,31 @@
+# Local PostgreSQL for dev (when Docker is available).
+# NOTE: The current dev environment uses SQLite (apps/api/dev.db) by default
+# because Docker is not available on this machine. See AGENTS.md.
+# To switch the API to Postgres: set DATABASE_URL in apps/api/.env and change
+# the provider in apps/api/prisma/schema.prisma from "sqlite" to "postgresql",
+# then run `pnpm db:migrate`.
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: royal_spirits_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: royal
+      POSTGRES_PASSWORD: royal
+      POSTGRES_DB: royal_spirits
+    ports:
+      - "5432:5432"
+    volumes:
+      - royal_spirits_pgdata:/var/lib/postgresql/data
+
+  adminer:
+    image: adminer:latest
+    container_name: royal_spirits_adminer
+    restart: unless-stopped
+    depends_on:
+      - db
+    ports:
+      - "8080:8080"
+
+volumes:
+  royal_spirits_pgdata:

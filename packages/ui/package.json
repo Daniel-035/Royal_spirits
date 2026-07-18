@@ -1,0 +1,41 @@
+{
+  "name": "@royal-spirits/ui",
+  "version": "1.0.0",
+  "private": true,
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    },
+    "./tokens.css": "./src/tokens.css",
+    "./tailwind.preset.cjs": "./src/tailwind.preset.cjs"
+  },
+  "files": [
+    "dist",
+    "src/tokens.css",
+    "src/tailwind.preset.cjs"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "lint": "eslint src",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run --passWithNoTests",
+    "clean": "rimraf dist"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0 || ^19.0.0"
+  },
+  "dependencies": {
+    "@royal-spirits/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.1",
+    "react": "^19.0.0",
+    "tsup": "^8.3.5",
+    "vitest": "^2.1.8"
+  }
+}
