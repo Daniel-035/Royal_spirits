@@ -22,7 +22,7 @@ export const env = {
   adminUsername: process.env.ADMIN_USERNAME ?? 'admin',
   adminPassword: process.env.ADMIN_PASSWORD ?? 'admin123',
   exciseLicenseNumber: process.env.EXCISE_LICENSE_NUMBER ?? '',
-  corsOrigins: (process.env.CORS_ORIGINS ?? 'http://localhost:3000,http://localhost:5173')
+  corsOrigins: (process.env.CORS_ORIGINS || 'http://localhost:3000,http://localhost:5173')
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean),
