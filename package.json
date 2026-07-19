@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "description": "Royal Spirits — online liquor ordering website + admin panel",
-  "packageManager": "pnpm@11.14.0",
+  "packageManager": "pnpm@10.12.4",
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=22.13.0"
   },
   "scripts": {
     "dev": "turbo run dev",
