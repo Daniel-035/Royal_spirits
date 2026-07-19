@@ -38,8 +38,11 @@ services:
         value: admin
       - key: ADMIN_PASSWORD
         sync: false
+      # Comma-separated list of allowed browser origins. Service names below
+      # are fixed by this blueprint, so the *.onrender.com URLs are known.
+      # Override in the dashboard only if you add custom domains.
       - key: CORS_ORIGINS
-        sync: false
+        value: https://royal-spirits-customer.onrender.com,https://royal-spirits-admin.onrender.com
       - key: COOKIE_SECURE
         value: "true"
       - key: OTP_PROVIDER
@@ -64,7 +67,7 @@ services:
       - key: NODE_ENV
         value: production
       - key: NEXT_PUBLIC_API_BASE_URL
-        sync: false
+        value: https://royal-spirits-api.onrender.com
       - key: NEXT_PUBLIC_EXCISE_LICENSE_NUMBER
         value: L-EXCISE-00000
 
@@ -80,6 +83,6 @@ services:
       - key: NODE_ENV
         value: production
       - key: VITE_API_BASE_URL
-        sync: false
+        value: https://royal-spirits-api.onrender.com
       - key: VITE_EXCISE_LICENSE_NUMBER
         value: L-EXCISE-00000

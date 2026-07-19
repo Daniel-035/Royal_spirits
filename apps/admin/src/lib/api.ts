@@ -1,6 +1,14 @@
 const API_ORIGIN = import.meta.env.VITE_API_BASE_URL ?? '';
 const BASE = `${API_ORIGIN}/api/v1`;
 
+if (!API_ORIGIN && typeof window !== 'undefined') {
+  console.error(
+    '[api] VITE_API_BASE_URL is not set. Requests will be sent to the ' +
+      'current origin instead of the API server. Set VITE_API_BASE_URL ' +
+      'in the build environment (e.g. Render/Netlify env vars).',
+  );
+}
+
 async function request<T>(
   path: string,
   options: RequestInit = {},

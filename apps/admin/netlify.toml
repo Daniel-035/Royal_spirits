@@ -4,7 +4,7 @@
 
 [build.environment]
   NODE_VERSION = "20"
-  VITE_API_BASE_URL = "https://royal-spirits-api.up.railway.app"
+  VITE_API_BASE_URL = "https://royal-spirits-api.onrender.com"
   VITE_EXCISE_LICENSE_NUMBER = "L-EXCISE-00000"
 
 [[redirects]]
