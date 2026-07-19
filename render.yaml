@@ -2,8 +2,9 @@
 # Docs: https://render.com/docs/blueprint-spec
 # Deploy: connect this repo in the Render dashboard → "New" → "Blueprint"
 #
-# Native Node buildpack (runtime: node) auto-detects pnpm from pnpm-lock.yaml
-# and reads Node version from .nvmrc. No Dockerfiles needed.
+# No rootDir: all services build from the repo root so Render detects
+# pnpm-lock.yaml and uses pnpm (not npm) for the dependency install step.
+# npm cannot resolve the `workspace:*` protocol in our package.json files.
 
 databases:
   - name: royal-spirits-db
@@ -21,9 +22,8 @@ services:
     runtime: node
     plan: free
     region: oregon
-    rootDir: apps/api
-    buildCommand: cd ../.. && pnpm install --frozen-lockfile --config.confirm-modules-purge=false && pnpm build --filter @royal-spirits/api
-    startCommand: sh scripts/deploy.sh
+    buildCommand: pnpm install --frozen-lockfile --config.confirm-modules-purge=false && pnpm build --filter @royal-spirits/api
+    startCommand: sh apps/api/scripts/deploy.sh
     healthCheckPath: /api/v1/health
     envVars:
       - key: NODE_ENV
@@ -57,8 +57,7 @@ services:
     runtime: node
     plan: free
     region: oregon
-    rootDir: apps/customer
-    buildCommand: cd ../.. && pnpm install --frozen-lockfile --config.confirm-modules-purge=false && pnpm build --filter @royal-spirits/customer
+    buildCommand: pnpm install --frozen-lockfile --config.confirm-modules-purge=false && pnpm build --filter @royal-spirits/customer
     startCommand: pnpm --filter @royal-spirits/customer start
     healthCheckPath: /
     envVars:
@@ -75,9 +74,8 @@ services:
   - type: web
     name: royal-spirits-admin
     runtime: static
-    rootDir: apps/admin
-    staticPublishPath: ./dist
-    buildCommand: cd ../.. && pnpm install --frozen-lockfile --config.confirm-modules-purge=false && pnpm build --filter @royal-spirits/admin
+    staticPublishPath: ./apps/admin/dist
+    buildCommand: pnpm install --frozen-lockfile --config.confirm-modules-purge=false && pnpm build --filter @royal-spirits/admin
     envVars:
       - key: NODE_ENV
         value: production
