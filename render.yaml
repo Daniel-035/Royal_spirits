@@ -2,8 +2,9 @@
 # Docs: https://render.com/docs/blueprint-spec
 # Deploy: connect this repo in the Render dashboard → "New" → "Blueprint"
 #
-# Render auto-detects pnpm from pnpm-lock.yaml at the repo root — there is no
-# "pnpm" runtime value. Node/pnpm versions are pinned via env vars below.
+# Render Blueprints require an explicit runtime. Node services use
+# `runtime: docker` with a Dockerfile (auto-detected pnpm via corepack).
+# The admin SPA is a `runtime: static` site (no region allowed).
 
 databases:
   - name: royal-spirits-db
@@ -18,14 +19,11 @@ services:
   # ─────────────────────────────────────────────
   - type: web
     name: royal-spirits-api
+    runtime: docker
     plan: free
     region: oregon
-    rootDir: apps/api
+    dockerfilePath: ./apps/api/Dockerfile
     envVars:
-      - key: NODE_VERSION
-        value: "22.13.0"
-      - key: PNPM_VERSION
-        value: "10.12.4"
       - key: NODE_ENV
         value: production
       - key: DATABASE_URL
@@ -48,8 +46,6 @@ services:
         value: mock
       - key: PORT
         value: "4000"
-    buildCommand: cd ../.. && corepack enable && pnpm install --frozen-lockfile && pnpm build --filter @royal-spirits/api
-    startCommand: pnpm --filter @royal-spirits/api run db:deploy && pnpm --filter @royal-spirits/api start
     healthCheckPath: /api/v1/health
 
   # ─────────────────────────────────────────────
@@ -57,22 +53,17 @@ services:
   # ─────────────────────────────────────────────
   - type: web
     name: royal-spirits-customer
+    runtime: docker
     plan: free
     region: oregon
-    rootDir: apps/customer
+    dockerfilePath: ./apps/customer/Dockerfile
     envVars:
-      - key: NODE_VERSION
-        value: "22.13.0"
-      - key: PNPM_VERSION
-        value: "10.12.4"
       - key: NODE_ENV
         value: production
       - key: NEXT_PUBLIC_API_BASE_URL
         sync: false
       - key: NEXT_PUBLIC_EXCISE_LICENSE_NUMBER
         value: L-EXCISE-00000
-    buildCommand: cd ../.. && corepack enable && pnpm install --frozen-lockfile && pnpm build --filter @royal-spirits/customer
-    startCommand: pnpm --filter @royal-spirits/customer start
     healthCheckPath: /
 
   # ─────────────────────────────────────────────
@@ -82,7 +73,6 @@ services:
     name: royal-spirits-admin
     runtime: static
     plan: free
-    region: oregon
     rootDir: apps/admin
     staticPublishPath: ./dist
     envVars:
