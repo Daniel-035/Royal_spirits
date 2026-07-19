@@ -48,6 +48,25 @@ Always run `pnpm lint && pnpm typecheck && pnpm build` before finishing a part.
 - Tests: Vitest. E2E (Playwright) added in Part 5.
 - Design tokens: Reserve & Barrel (charcoal/amber/off-white), Libre Caslon Text +
   Hanken Grotesk. See `packages/ui/src/tokens.css`.
+- WhatsApp bot: lives inside `apps/api` (single-process invariant — the
+  `orderEvents` EventEmitter fans out to the admin SSE stream; splitting the bot
+  into a separate process would require Redis pub/sub). State machine:
+  GREETING → BROWSE → PRODUCT_LIST → CART → ADDRESS → NAME → AGE_CONFIRM → DONE,
+  plus TRACK / CANCEL_ORDER via button replies. COD only (`paymentType: 'Cash'`;
+  `paymentStatus` flips to `Paid` only when admin marks `Delivered`).
+- LLM: Gemini 2.0 Flash free tier behind an `LLMProvider` interface
+  (`LLM_PROVIDER=mock|gemini`). The LLM does intent + entity extraction for
+  free-text messages only; the deterministic state machine stays the source of
+  truth for ordering (age-gate, stock, pincode, delivery hours stay enforceable).
+  Falls back to the keyword router on LLM error/timeout.
+- Admin handoff: `WhatsAppSession.handoffToAdminId` — when set, the bot skips
+  processing inbound messages for that phone (admin replies via the broadcast
+  endpoint). No auto-expiry; admin must explicitly toggle off.
+- Invoice: formatted WhatsApp text message (no PDF dep) with items, totals,
+  address, excise license, and responsible-drinking disclaimer.
+- Cancellation: customers can cancel only while `status === 'Ordered'`; mirrors
+  `allowedStatusTransitions`. Cancelling restocks items in a transaction and
+  emits `orderEvents.announceUpdate`.
 
 ## Conventions
 

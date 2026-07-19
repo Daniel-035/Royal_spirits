@@ -46,4 +46,7 @@ export const env = {
   whatsappAccessToken: process.env.WHATSAPP_ACCESS_TOKEN ?? '',
   whatsappBusinessId: process.env.WHATSAPP_BUSINESS_ID ?? '',
   whatsappApiVersion: process.env.WHATSAPP_API_VERSION ?? 'v18.0',
+  llmProvider: (process.env.LLM_PROVIDER ?? 'mock') as 'mock' | 'gemini',
+  geminiApiKey: process.env.GEMINI_API_KEY ?? '',
+  geminiModel: process.env.GEMINI_MODEL ?? 'gemini-2.0-flash',
 };

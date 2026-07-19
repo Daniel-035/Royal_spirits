@@ -7,6 +7,7 @@ import { ProductsPage } from './pages/ProductsPage';
 import { ProductFormPage } from './pages/ProductFormPage';
 import { OrdersPage } from './pages/OrdersPage';
 import { OrderDetailPage } from './pages/OrderDetailPage';
+import { ConversationsPage } from './pages/ConversationsPage';
 import { ZonesPage } from './pages/ZonesPage';
 import { Container } from '@royal-spirits/ui';
 
@@ -33,6 +34,7 @@ function ProtectedRoutes() {
         <Route path="/products/:id" element={<ProductFormPage />} />
         <Route path="/orders" element={<OrdersPage />} />
         <Route path="/orders/:id" element={<OrderDetailPage />} />
+        <Route path="/conversations" element={<ConversationsPage />} />
         <Route path="/zones" element={<ZonesPage />} />
       </Route>
     </Routes>

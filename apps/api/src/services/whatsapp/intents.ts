@@ -6,10 +6,18 @@ import {
   buildProductList,
   buildCartSummary,
   buildAddressPrompt,
+  buildNamePrompt,
   buildAgeConfirmation,
   buildOrderConfirmation,
+  buildInvoiceText,
+  buildOrdersListWithActions,
+  buildOrderDetailText,
+  buildCancelConfirmation,
 } from './templates';
 import { createOrder } from '../order/createOrder';
+import { cancelOrder } from '../order/cancelOrder';
+import { getLLMService, type IntentResult } from '../llm';
+import { env } from '../../config/env';
 import { CATEGORIES, DEFAULT_DELIVERY_CHARGE } from '@royal-spirits/shared';
 
 export interface CartItem {
@@ -52,6 +60,12 @@ function cartTotal(cart: CartItem[]): { subtotal: number; deliveryCharge: number
   return { subtotal, deliveryCharge: DEFAULT_DELIVERY_CHARGE };
 }
 
+function sanitizeName(raw: string): string | null {
+  const name = raw.replace(/[<>{}[\]\\]/g, '').trim();
+  if (name.length < 2 || name.length > 100) return null;
+  return name;
+}
+
 export async function handleInbound(message: InboundMessage): Promise<void> {
   const phone = message.from;
   const session = await prisma.whatsAppSession.upsert({
@@ -59,6 +73,10 @@ export async function handleInbound(message: InboundMessage): Promise<void> {
     update: { lastIntentAt: new Date() },
     create: { phone },
   });
+
+  if (session.handoffToAdminId) {
+    return;
+  }
 
   const text = (message.text ?? '').trim();
   const replyId = message.interactiveId ?? '';
@@ -82,6 +100,16 @@ export async function handleInbound(message: InboundMessage): Promise<void> {
     return;
   }
 
+  if (replyId.startsWith('track:')) {
+    await routeTrack(phone, replyId.slice(6));
+    return;
+  }
+
+  if (replyId.startsWith('cancel_order:')) {
+    await routeCancelOrder(phone, replyId.slice(13));
+    return;
+  }
+
   switch (session.state) {
     case 'GREETING':
     case 'DONE':
@@ -98,6 +126,9 @@ export async function handleInbound(message: InboundMessage): Promise<void> {
       break;
     case 'ADDRESS':
       await routeAddress(phone, text);
+      break;
+    case 'NAME':
+      await routeName(phone, text);
       break;
     case 'AGE_CONFIRM':
       await routeAgeConfirm(phone, replyId);
@@ -132,6 +163,12 @@ async function routeGreeting(phone: string, text: string, replyId: string): Prom
     );
     return;
   }
+
+  if (text && !replyId) {
+    const dispatched = await dispatchLlmIntent(phone, text);
+    if (dispatched) return;
+  }
+
   await whatsappService.sendInteractive(phone, buildMainMenu());
 }
 
@@ -160,6 +197,12 @@ async function routeBrowse(phone: string, _text: string, replyId: string): Promi
     await whatsappService.sendInteractive(phone, buildProductList(category, products));
     return;
   }
+
+  if (_text && !replyId) {
+    const dispatched = await dispatchLlmIntent(phone, _text);
+    if (dispatched) return;
+  }
+
   await whatsappService.sendInteractive(phone, buildCategoryList());
 }
 
@@ -208,6 +251,12 @@ async function routeProductList(
     await whatsappService.sendInteractive(phone, buildCategoryList());
     return;
   }
+
+  if (_text && !replyId) {
+    const dispatched = await dispatchLlmIntent(phone, _text);
+    if (dispatched) return;
+  }
+
   let category = '';
   try {
     category = (JSON.parse(contextJson) as { category?: string }).category ?? '';
@@ -271,9 +320,25 @@ async function routeAddress(phone: string, text: string): Promise<void> {
   await prisma.whatsAppSession.update({
     where: { phone },
     data: {
-      state: 'AGE_CONFIRM',
+      state: 'NAME',
       contextJson: JSON.stringify({ address: parsed.address, pincode: parsed.pincode }),
     },
+  });
+  await whatsappService.sendInteractive(phone, buildNamePrompt());
+}
+
+async function routeName(phone: string, text: string): Promise<void> {
+  const name = sanitizeName(text);
+  if (!name) {
+    await whatsappService.sendText(
+      phone,
+      'Please reply with a valid name (2–100 characters).',
+    );
+    return;
+  }
+  await prisma.whatsAppSession.update({
+    where: { phone },
+    data: { customerName: name, state: 'AGE_CONFIRM' },
   });
   await whatsappService.sendInteractive(phone, buildAgeConfirmation());
 }
@@ -317,10 +382,12 @@ async function routeAgeConfirm(phone: string, replyId: string): Promise<void> {
     return;
   }
 
+  const customerName = session!.customerName ?? 'Customer';
+
   const customer = await prisma.customer.upsert({
     where: { phone },
-    update: {},
-    create: { phone },
+    update: { name: customerName },
+    create: { phone, name: customerName },
   });
 
   try {
@@ -335,6 +402,7 @@ async function routeAgeConfirm(phone: string, replyId: string): Promise<void> {
         ageConfirmed: true,
         tncAccepted: true,
         paymentType: 'Cash',
+        customerName,
       },
     });
 
@@ -343,10 +411,22 @@ async function routeAgeConfirm(phone: string, replyId: string): Promise<void> {
       data: { state: 'DONE', cartJson: '[]', contextJson: '{}' },
     });
 
-    await whatsappService.sendInteractive(
+    const { subtotal, deliveryCharge } = cartTotal(cart);
+    const invoice = buildInvoiceText({
+      orderId: order.id,
+      customerName,
       phone,
-      buildOrderConfirmation(order.id, order.totalAmount, cart),
-    );
+      items: cart,
+      subtotal,
+      deliveryCharge,
+      totalAmount: order.totalAmount,
+      deliveryAddress: context.address,
+      pincode: context.pincode,
+      paymentType: order.paymentType,
+      exciseLicenseNumber: env.exciseLicenseNumber || undefined,
+    });
+    await whatsappService.sendText(phone, invoice);
+    await whatsappService.sendInteractive(phone, buildOrderConfirmation(order.id, order.totalAmount, cart));
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Order could not be placed.';
     await whatsappService.sendText(phone, `Order failed: ${message}`);
@@ -367,28 +447,154 @@ async function routeAgeConfirm(phone: string, replyId: string): Promise<void> {
 async function sendRecentOrders(phone: string): Promise<void> {
   const customer = await prisma.customer.findUnique({ where: { phone } });
   if (!customer) {
-    await whatsappService.sendText(phone, 'You have no orders yet. Type "browse" to start shopping.');
+    await whatsappService.sendInteractive(
+      phone,
+      buildOrdersListWithActions([]),
+    );
     return;
   }
   const orders = await prisma.order.findMany({
     where: { customerId: customer.id },
     orderBy: { createdAt: 'desc' },
-    take: 3,
+    take: 5,
     include: { items: true },
   });
-  if (orders.length === 0) {
-    await whatsappService.sendText(phone, 'You have no orders yet. Type "browse" to start shopping.');
-    return;
-  }
-  const lines = orders.map(
-    (o) => `• #${o.id.slice(0, 8)} — ₹${o.totalAmount.toFixed(0)} — ${o.status}`,
-  );
-  await whatsappService.sendText(
+  await whatsappService.sendInteractive(
     phone,
-    `Your recent orders:\n${lines.join('\n')}\n\nType "browse" to shop again.`,
+    buildOrdersListWithActions(
+      orders.map((o) => ({
+        id: o.id,
+        status: o.status,
+        totalAmount: o.totalAmount,
+        createdAt: o.createdAt,
+        items: o.items.map((i) => ({ itemName: i.itemName, quantity: i.quantity })),
+      })),
+    ),
   );
   await prisma.whatsAppSession.update({
     where: { phone },
     data: { state: 'GREETING' },
   });
+}
+
+async function routeTrack(phone: string, orderId: string): Promise<void> {
+  const order = await prisma.order.findUnique({
+    where: { id: orderId },
+    include: { items: true },
+  });
+  if (!order || order.phone !== phone) {
+    await whatsappService.sendText(
+      phone,
+      'That order could not be found for your number. Type "orders" to see your orders.',
+    );
+    return;
+  }
+  await whatsappService.sendText(phone, buildOrderDetailText(order));
+  await prisma.whatsAppSession.update({
+    where: { phone },
+    data: { state: 'GREETING' },
+  });
+}
+
+async function routeCancelOrder(phone: string, orderId: string): Promise<void> {
+  try {
+    const updated = await cancelOrder({ phone, orderId });
+    await whatsappService.sendInteractive(phone, buildCancelConfirmation(updated.id));
+    await prisma.whatsAppSession.update({
+      where: { phone },
+      data: { state: 'GREETING' },
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Could not cancel the order.';
+    await whatsappService.sendText(phone, message);
+  }
+}
+
+async function dispatchLlmIntent(phone: string, text: string): Promise<boolean> {
+  let result: IntentResult;
+  try {
+    result = await getLLMService().detectIntent(text);
+  } catch (err) {
+    console.error('[llm] intent detection failed, falling back:', err);
+    return false;
+  }
+
+  switch (result.intent) {
+    case 'browse':
+      await prisma.whatsAppSession.update({
+        where: { phone },
+        data: { state: 'BROWSE' },
+      });
+      await whatsappService.sendInteractive(phone, buildCategoryList());
+      return true;
+    case 'orders':
+      await sendRecentOrders(phone);
+      return true;
+    case 'track':
+      await sendRecentOrders(phone);
+      return true;
+    case 'cancel':
+      await sendRecentOrders(phone);
+      return true;
+    case 'help':
+      await whatsappService.sendText(
+        phone,
+        'Our team will reach out shortly. For urgent help, call us during business hours.',
+      );
+      return true;
+    case 'product_search':
+      await routeProductSearch(phone, result.entities);
+      return true;
+    case 'unknown':
+    default:
+      return false;
+  }
+}
+
+async function routeProductSearch(
+  phone: string,
+  entities: { category?: string; maxPrice?: number; query?: string } | undefined,
+): Promise<void> {
+  const where: {
+    isActive?: boolean;
+    stockQty?: { gt: number };
+    category?: string;
+    price?: { lte?: number };
+    OR?: Array<{ name?: { contains: string } | { contains: string; mode: 'insensitive' } }>;
+  } = { isActive: true, stockQty: { gt: 0 } };
+
+  if (entities?.category) {
+    const cat = entities.category.charAt(0).toUpperCase() + entities.category.slice(1).toLowerCase();
+    if (CATEGORIES.includes(cat as never)) {
+      where.category = cat;
+    }
+  }
+  if (entities?.maxPrice) {
+    where.price = { lte: entities.maxPrice };
+  }
+  if (entities?.query) {
+    where.OR = [{ name: { contains: entities.query, mode: 'insensitive' } }];
+  }
+
+  const products = await prisma.product.findMany({
+    where,
+    take: 10,
+    orderBy: { price: 'asc' },
+  });
+
+  if (products.length === 0) {
+    await whatsappService.sendText(
+      phone,
+      'No products match your search. Try a different category or price.',
+    );
+    await whatsappService.sendInteractive(phone, buildCategoryList());
+    return;
+  }
+
+  const category = where.category ?? 'Search Results';
+  await prisma.whatsAppSession.update({
+    where: { phone },
+    data: { state: 'PRODUCT_LIST', contextJson: JSON.stringify({ category: where.category ?? '' }) },
+  });
+  await whatsappService.sendInteractive(phone, buildProductList(category, products));
 }

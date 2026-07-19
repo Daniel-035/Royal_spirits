@@ -16,6 +16,7 @@ import { cartRouter } from './routes/cart';
 import { orderRouter, adminOrderRouter } from './routes/order';
 import { dashboardRouter } from './routes/dashboard';
 import { whatsappRouter } from './routes/whatsapp';
+import { adminWhatsappRouter } from './routes/adminWhatsapp';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 
 export function createApp() {
@@ -56,6 +57,7 @@ export function createApp() {
   app.use(`${API_BASE}/cart`, cartRouter);
   app.use(`${API_BASE}/orders`, orderRouter);
   app.use(`${API_BASE}/whatsapp`, whatsappRouter);
+  app.use(`${API_BASE}/admin/whatsapp`, adminWhatsappRouter);
 
   app.use(notFoundHandler);
   app.use(errorHandler);

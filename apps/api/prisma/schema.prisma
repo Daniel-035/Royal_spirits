@@ -129,6 +129,7 @@ model WhatsAppSession {
   contextJson String   @default("{}")
   cartJson    String   @default("[]")
   customerName String?
+  handoffToAdminId String?
   lastIntentAt DateTime @default(now())
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
