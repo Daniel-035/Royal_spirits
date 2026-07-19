@@ -11,17 +11,16 @@ RUN corepack enable
 
 WORKDIR /app
 
-# Copy the full workspace so --frozen-lockfile can validate every package
-COPY pnpm-lock.yaml package.json pnpm-workspace.yaml turbo.json ./
+# Copy workspace config + .npmrc so pnpm runs non-interactively
+COPY pnpm-lock.yaml package.json pnpm-workspace.yaml turbo.json .npmrc ./
 COPY packages/shared ./packages/shared
 COPY packages/ui ./packages/ui
 COPY apps/admin ./apps/admin
 COPY apps/api ./apps/api
 COPY apps/customer ./apps/customer
 
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --frozen-lockfile --config.confirm-modules-purge=false
 
-# Build only the customer app (and its workspace deps via turbo)
 RUN pnpm build --filter @royal-spirits/customer
 
 EXPOSE 3000
