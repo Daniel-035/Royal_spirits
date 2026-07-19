@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { CATEGORIES, PAYMENT_TYPES, PAYMENT_STATUSES, ORDER_STATUSES } from '../constants.js';
+import { CATEGORIES, PAYMENT_TYPES, PAYMENT_STATUSES, ORDER_STATUSES, ORDER_SOURCES } from '../constants.js';
 
 export const uuidSchema = z.string().uuid();
 
@@ -48,5 +48,6 @@ export const productQuerySchema = z.object({
 });
 
 export const orderStatusSchema = z.enum(ORDER_STATUSES);
+export const orderSourceSchema = z.enum(ORDER_SOURCES);
 export const paymentTypeSchema = z.enum(PAYMENT_TYPES);
 export const paymentStatusSchema = z.enum(PAYMENT_STATUSES);

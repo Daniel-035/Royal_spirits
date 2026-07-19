@@ -1,0 +1,11 @@
+[build]
+  command = "pnpm install && pnpm build --filter @royal-spirits/customer"
+  publish = "apps/customer/.next"
+
+[build.environment]
+  NODE_VERSION = "20"
+  NEXT_PUBLIC_API_BASE_URL = "https://royal-spirits-api.up.railway.app"
+  NEXT_PUBLIC_EXCISE_LICENSE_NUMBER = "L-EXCISE-00000"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"

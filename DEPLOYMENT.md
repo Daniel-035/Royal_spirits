@@ -1,84 +1,200 @@
-# Deployment Guide — Royal Spirits
+# Royal Spirits — Deployment Guide
+
+This monorepo deploys across **Railway** (API + Postgres) and **Netlify** (customer + admin frontends).
+
+## Architecture
+
+```
+┌─────────────────┐     ┌──────────────────────────────────┐
+│  Netlify         │     │  Railway                         │
+│  - Customer (SSR)│────▶│  - API (Express + Prisma)        │
+│  - Admin (SPA)   │     │  - Postgres                      │
+└─────────────────┘     └──────────────────────────────────┘
+```
 
 ## Prerequisites
 
-- Node.js 20+
-- pnpm 11+
-- A PostgreSQL instance (Railway, Render, or Supabase)
-- Cloudinary account (for product images)
-- Twilio or MSG91 account (for OTP SMS)
-- Vercel account (for frontend hosting)
+- GitHub repo (push your code first)
+- Railway account (https://railway.app)
+- Netlify account (https://netlify.com)
 
-## 1. Database (PostgreSQL)
+---
 
-Provision a PostgreSQL instance on Railway/Render/Supabase. Note the connection string.
+## Part 1 — Deploy the API to Railway
 
-```bash
-# Set DATABASE_URL in apps/api/.env.production
-# Then run migrations:
-DATABASE_URL="postgresql://..." pnpm --filter @royal-spirits/api exec prisma migrate deploy
-# Seed initial admin + zones:
-pnpm db:seed
+### 1. Create a Railway project
+
+1. Go to https://railway.app/new
+2. Select **Deploy from GitHub repo** and pick your repo
+3. Railway detects the monorepo — set the **Root Directory** to `apps/api`
+
+### 2. Add a Postgres database
+
+1. In the Railway project, click **+ New → Database → PostgreSQL**
+2. Railway provisions a Postgres instance and gives you a connection string
+3. Go to the **API service → Variables** and add:
+   ```
+   DATABASE_URL=<copy from Postgres plugin "Connect" tab>
+   ```
+
+### 3. Switch Prisma to Postgres
+
+Edit `apps/api/prisma/schema.prisma` line 6:
+```prisma
+datasource db {
+  provider = "postgresql"   # was "sqlite"
+  url      = env("DATABASE_URL")
+}
+```
+Commit and push. Railway will rebuild.
+
+### 4. Configure environment variables
+
+In the **API service → Variables**, add:
+
+| Variable | Example value | Notes |
+|----------|----------------|-------|
+| `DATABASE_URL` | `postgresql://...` | From Railway Postgres plugin |
+| `NODE_ENV` | `production` | |
+| `JWT_SECRET` | `<run: openssl rand -hex 32>` | **Change this!** |
+| `ADMIN_USERNAME` | `admin` | |
+| `ADMIN_PASSWORD` | `<strong password>` | **Change this!** |
+| `CORS_ORIGINS` | `https://your-customer.netlify.app,https://your-admin.netlify.app` | Add your Netlify URLs after Part 2 |
+| `COOKIE_SECURE` | `true` | Requires HTTPS |
+| `COOKIE_DOMAIN` | `.yourdomain.com` | Optional — only if using a custom domain |
+| `OTP_PROVIDER` | `mock` | Change to `msg91` or `twilio` later |
+| `WHATSAPP_PROVIDER` | `mock` | Change to `cloud_api` later |
+
+### 5. Build & Start commands (Railway dashboard)
+
+Railway auto-detects from `railway.json`. Verify in **Settings**:
+- **Build Command**: `cd ../.. && pnpm install --frozen-lockfile && pnpm build --filter @royal-spirits/api`
+- **Start Command**: `pnpm --filter @royal-spirits/api run db:deploy && pnpm --filter @royal-spirits/api start`
+
+Or if Railway resolves the workspace:
+- **Build**: `pnpm build --filter @royal-spirits/api`
+- **Start**: `pnpm run db:deploy && pnpm start`
+
+The `db:deploy` script runs `prisma migrate deploy` (applies migrations) then `prisma db seed` (creates admin + sample products + zones).
+
+### 6. Verify the API
+
+Once deployed, Railway gives you a URL like:
+```
+https://royal-spirits-api.up.railway.app
 ```
 
-## 2. API (Railway / Render)
+Test it:
+```bash
+curl https://royal-spirits-api.up.railway.app/api/v1/health
+# → { "status": "ok" }
+```
 
-Deploy `apps/api` as a Node.js service.
+Save this URL — you'll need it for Netlify.
 
-**Build command:** `pnpm install --frozen-lockfile && pnpm --filter @royal-spirits/api run build`
-**Start command:** `node apps/api/dist/index.js`
-**Root directory:** repo root
+---
 
-Set environment variables from `apps/api/.env.production.example`.
+## Part 2 — Deploy the Customer site to Netlify
 
-When switching from SQLite to PostgreSQL, change `provider` in
-`apps/api/prisma/schema.prisma` from `"sqlite"` to `"postgresql"` before deploying.
+### 1. Create a Netlify site
 
-## 3. Customer Storefront (Vercel)
+1. Go to https://app.netlify.com/start
+2. Connect your GitHub repo
+3. Netlify reads `apps/customer/netlify.toml` automatically
 
-Deploy `apps/customer` as a Next.js app on Vercel.
+### 2. Set environment variables
 
-**Root directory:** `apps/customer`
-**Build command:** `pnpm install --frozen-lockfile && pnpm --filter @royal-spirits/customer run build`
-**Output:** `.next`
+In **Site settings → Environment variables**, set:
+```
+NEXT_PUBLIC_API_BASE_URL=https://royal-spirits-api.up.railway.app
+NEXT_PUBLIC_EXCISE_LICENSE_NUMBER=L-EXCISE-00000
+```
 
-Set `NEXT_PUBLIC_API_BASE_URL` to the deployed API URL.
-Set `NEXT_PUBLIC_EXCISE_LICENSE_NUMBER`.
+(Replace with your actual Railway API URL from Part 1.)
 
-The `next.config.mjs` rewrites (`/api/*` → API) are for dev only. In production,
-set `NEXT_PUBLIC_API_BASE_URL` so the client fetches the API directly.
+### 3. Build settings (auto from netlify.toml)
 
-## 4. Admin Panel (Vercel)
+- **Build command**: `pnpm install && pnpm build --filter @royal-spirits/customer`
+- **Publish directory**: `apps/customer/.next`
+- **Plugin**: `@netlify/plugin-nextjs` (already in `apps/customer/netlify.toml`)
 
-Deploy `apps/admin` as a Vite SPA on Vercel.
+### 4. Update CORS on Railway
 
-**Root directory:** `apps/admin`
-**Build command:** `pnpm install --frozen-lockfile && pnpm --filter @royal-spirits/admin run build`
-**Output:** `dist`
+After Netlify gives you a URL (e.g. `https://royal-spirits-customer.netlify.app`), go back to Railway and update:
+```
+CORS_ORIGINS=https://royal-spirits-customer.netlify.app,https://royal-spirits-admin.netlify.app
+```
 
-Set `VITE_API_BASE_URL` to the deployed API URL.
-Set `VITE_EXCISE_LICENSE_NUMBER`.
+---
 
-In production, the admin SPA's API calls need absolute URLs. The `lib/api.ts`
-uses `/api/v1` (relative). Update it to use `VITE_API_BASE_URL` for prod,
-or configure a reverse proxy.
+## Part 3 — Deploy the Admin panel to Netlify
 
-## 5. Post-Deploy Verification
+### 1. Create a second Netlify site
 
-1. Visit the customer site → age gate appears → confirm → browse products
-2. Admin panel → login with seeded admin credentials → add/edit products
-3. Customer → add to cart → checkout → OTP login → place order (within delivery hours)
-4. Admin → see new order → confirm → mark delivered
-5. Customer → My Orders → see updated status
+1. Go to https://app.netlify.com/start
+2. Connect the same GitHub repo
+3. Set **Base directory** to `apps/admin` (or rely on `apps/admin/netlify.toml`)
 
-## Switching SQLite → PostgreSQL
+### 2. Set environment variables
 
-The dev environment uses SQLite. For production:
+```
+VITE_API_BASE_URL=https://royal-spirits-api.up.railway.app
+VITE_EXCISE_LICENSE_NUMBER=L-EXCISE-00000
+```
 
-1. Change `provider` in `apps/api/prisma/schema.prisma` to `"postgresql"`.
-2. Set `DATABASE_URL` to the Postgres connection string.
-3. Run `prisma migrate dev --name init` (creates migration for Postgres).
-4. Run `prisma db seed` to populate admin + zones + sample products.
+### 3. Build settings (auto from netlify.toml)
 
-The schema is portable — enums are stored as TEXT on SQLite and as native
-enums on Postgres (Prisma handles this automatically).
+- **Build command**: `pnpm install && pnpm build --filter @royal-spirits/admin`
+- **Publish directory**: `apps/admin/dist`
+- SPA redirects handled by `netlify.toml` (all routes → `index.html`)
+
+---
+
+## Part 4 — Post-deploy checklist
+
+- [ ] API health check passes: `curl https://<railway-url>/api/v1/health`
+- [ ] Admin login works: `https://<admin-netlify-url>` → login with `admin` / `<your password>`
+- [ ] Customer site loads: `https://<customer-netlify-url>`
+- [ ] Products appear on customer site (seeded data)
+- [ ] Can place a test order on the customer site
+- [ ] Order appears in admin panel
+- [ ] CORS is configured (no console errors in browser)
+- [ ] Cookies work (login persists across page refresh)
+- [ ] Change `ADMIN_PASSWORD` from the seeded default
+- [ ] Generate a new `JWT_SECRET` (don't reuse dev value)
+- [ ] Set `COOKIE_SECURE=true` on Railway
+- [ ] Configure WhatsApp (optional): set `WHATSAPP_PROVIDER=cloud_api` + Meta credentials
+
+---
+
+## Troubleshooting
+
+### CORS errors in browser
+Ensure `CORS_ORIGINS` on Railway includes your exact Netlify URLs (with `https://`), comma-separated, no spaces.
+
+### Cookies not persisting (login resets)
+- Set `COOKIE_SECURE=true` on Railway (production uses HTTPS)
+- If using custom domains, set `COOKIE_DOMAIN=.yourdomain.com`
+- Ensure `CORS_ORIGINS` is set correctly (credentials require explicit origins, not `*`)
+
+### Admin SPA shows 404 on refresh
+The `netlify.toml` redirect rule handles this. Verify it's deployed:
+```toml
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+```
+
+### Prisma migration errors on Railway
+Run migrations manually via Railway shell:
+```bash
+pnpm --filter @royal-spirits/api exec prisma migrate deploy
+pnpm --filter @royal-spirits/api exec prisma db seed
+```
+
+### WhatsApp webhook not receiving
+1. Set `WHATSAPP_PROVIDER=cloud_api` on Railway
+2. Point Meta's webhook URL to: `https://<railway-url>/api/v1/whatsapp/webhook`
+3. Set `WHATSAPP_VERIFY_TOKEN` to match what you entered in Meta Business Manager
+4. Subscribe to `messages` webhook field

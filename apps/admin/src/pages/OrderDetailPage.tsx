@@ -11,6 +11,7 @@ export function OrderDetailPage() {
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -46,6 +47,25 @@ export function OrderDetailPage() {
     }
   }
 
+  async function copyDeliveryDetails() {
+    if (!order) return;
+    const details = [
+      `Customer: ${order.customerName}`,
+      `Phone: ${order.phone}`,
+      `Address: ${order.deliveryAddress}`,
+      `Pincode: ${order.pincode}`,
+      `Order #: ${order.id.slice(0, 8)}`,
+      `Total: ₹${order.totalAmount.toFixed(0)} (${order.paymentType} - ${order.paymentStatus})`,
+    ].join('\n');
+    try {
+      await navigator.clipboard.writeText(details);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setError('Failed to copy to clipboard');
+    }
+  }
+
   if (loading) {
     return (
       <Container className="py-8">
@@ -76,6 +96,9 @@ export function OrderDetailPage() {
           Order #{order.id.slice(0, 8)}
         </h1>
         <StatusChip status={order.status} />
+        <span className={`inline-block rounded-rs-full px-2 py-0.5 text-xs font-medium ${order.source === 'WHATSAPP' ? 'bg-rs-secondary-fixed text-rs-on-secondary-container' : 'bg-rs-surface-container-high text-rs-on-surface-variant'}`}>
+          {order.source}
+        </span>
       </div>
       <p className="mt-1 text-sm text-rs-on-surface-variant">
         {new Date(order.createdAt).toLocaleString()}
@@ -118,21 +141,45 @@ export function OrderDetailPage() {
               </div>
             </div>
           </div>
+
+          <div className="rounded-rs-lg border border-rs-outline-variant bg-rs-surface-lowest p-6">
+            <div className="flex items-center justify-between">
+              <h2 className="font-display text-lg font-semibold text-rs-on-surface">Customer & Delivery Details</h2>
+              <Button variant="ghost" size="sm" onClick={copyDeliveryDetails}>
+                {copied ? 'Copied!' : 'Copy Details'}
+              </Button>
+            </div>
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wide text-rs-on-surface-variant">Customer Name</p>
+                <p className="mt-1 text-sm font-medium text-rs-on-surface">{order.customerName}</p>
+              </div>
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wide text-rs-on-surface-variant">Phone Number</p>
+                <p className="mt-1 text-sm text-rs-on-surface">
+                  <a href={`tel:${order.phone}`} className="hover:underline">{order.phone}</a>
+                </p>
+              </div>
+            </div>
+            <div className="mt-4 border-t border-rs-outline-variant pt-4">
+              <p className="text-xs font-medium uppercase tracking-wide text-rs-on-surface-variant">Shipping Address</p>
+              <p className="mt-1 whitespace-pre-line text-sm text-rs-on-surface">{order.deliveryAddress}</p>
+              <p className="mt-2 text-sm text-rs-on-surface-variant">Pincode: <span className="font-medium text-rs-on-surface">{order.pincode}</span></p>
+            </div>
+            <div className="mt-4 grid gap-4 border-t border-rs-outline-variant pt-4 sm:grid-cols-2">
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wide text-rs-on-surface-variant">Order Source</p>
+                <p className="mt-1 text-sm text-rs-on-surface">{order.source}</p>
+              </div>
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wide text-rs-on-surface-variant">Order Date</p>
+                <p className="mt-1 text-sm text-rs-on-surface">{new Date(order.createdAt).toLocaleString()}</p>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div className="space-y-6">
-          <div className="rounded-rs-lg border border-rs-outline-variant bg-rs-surface-lowest p-6">
-            <h2 className="font-display text-lg font-semibold text-rs-on-surface">Customer</h2>
-            <p className="mt-2 text-sm font-medium text-rs-on-surface">{order.customerName}</p>
-            <p className="text-sm text-rs-on-surface-variant">{order.phone}</p>
-          </div>
-
-          <div className="rounded-rs-lg border border-rs-outline-variant bg-rs-surface-lowest p-6">
-            <h2 className="font-display text-lg font-semibold text-rs-on-surface">Shipping Address</h2>
-            <p className="mt-2 text-sm text-rs-on-surface">{order.deliveryAddress}</p>
-            <p className="mt-1 text-sm text-rs-on-surface-variant">Pincode: {order.pincode}</p>
-          </div>
-
           <div className="rounded-rs-lg border border-rs-outline-variant bg-rs-surface-lowest p-6">
             <h2 className="font-display text-lg font-semibold text-rs-on-surface">Payment</h2>
             <p className="mt-2 text-sm text-rs-on-surface-variant">Type: {order.paymentType}</p>

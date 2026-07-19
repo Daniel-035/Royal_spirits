@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Container, StatusChip } from '@royal-spirits/ui';
 import { api } from '../lib/api';
-import type { Order, Paginated, OrderStatus, PaymentStatus, PaymentType } from '@royal-spirits/shared';
-import { ORDER_STATUSES, PAYMENT_STATUSES, PAYMENT_TYPES } from '@royal-spirits/shared';
+import type { Order, Paginated, OrderStatus, PaymentStatus, PaymentType, OrderSource } from '@royal-spirits/shared';
+import { ORDER_STATUSES, PAYMENT_STATUSES, PAYMENT_TYPES, ORDER_SOURCES } from '@royal-spirits/shared';
 
 export function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -11,6 +11,7 @@ export function OrdersPage() {
   const [status, setStatus] = useState('');
   const [paymentStatus, setPaymentStatus] = useState('');
   const [paymentType, setPaymentType] = useState('');
+  const [source, setSource] = useState('');
   const [search, setSearch] = useState('');
   const [date, setDate] = useState('');
 
@@ -20,6 +21,7 @@ export function OrdersPage() {
     if (status) params.set('status', status);
     if (paymentStatus) params.set('paymentStatus', paymentStatus);
     if (paymentType) params.set('paymentType', paymentType);
+    if (source) params.set('source', source);
     if (search) params.set('search', search);
     if (date) params.set('date', date);
     params.set('pageSize', '100');
@@ -27,7 +29,7 @@ export function OrdersPage() {
       .get<Paginated<Order>>(`/admin/orders?${params.toString()}`)
       .then((res) => setOrders(res.data))
       .finally(() => setLoading(false));
-  }, [status, paymentStatus, paymentType, search, date]);
+  }, [status, paymentStatus, paymentType, source, search, date]);
 
   return (
     <Container className="py-8">
@@ -64,6 +66,16 @@ export function OrdersPage() {
             <option key={t} value={t}>{t}</option>
           ))}
         </select>
+        <select
+          value={source}
+          onChange={(e) => setSource(e.target.value)}
+          className="h-11 rounded-rs border border-rs-outline-variant bg-rs-surface-lowest px-3 text-sm focus:border-rs-secondary focus:outline-none"
+        >
+          <option value="">All sources</option>
+          {ORDER_SOURCES.map((s: OrderSource) => (
+            <option key={s} value={s}>{s}</option>
+          ))}
+        </select>
         <input
           type="date"
           value={date}
@@ -85,6 +97,7 @@ export function OrdersPage() {
               <th className="px-4 py-3">Order ID</th>
               <th className="px-4 py-3">Customer</th>
               <th className="px-4 py-3">Phone</th>
+              <th className="px-4 py-3">Source</th>
               <th className="px-4 py-3">Payment</th>
               <th className="px-4 py-3">Pay Status</th>
               <th className="px-4 py-3">Items</th>
@@ -96,11 +109,11 @@ export function OrdersPage() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={9} className="px-4 py-8 text-center text-rs-on-surface-variant">Loading...</td>
+                <td colSpan={10} className="px-4 py-8 text-center text-rs-on-surface-variant">Loading...</td>
               </tr>
             ) : orders.length === 0 ? (
               <tr>
-                <td colSpan={9} className="px-4 py-8 text-center text-rs-on-surface-variant">No orders found.</td>
+                <td colSpan={10} className="px-4 py-8 text-center text-rs-on-surface-variant">No orders found.</td>
               </tr>
             ) : (
               orders.map((o) => (
@@ -112,6 +125,11 @@ export function OrdersPage() {
                   </td>
                   <td className="px-4 py-3 text-rs-on-surface">{o.customerName}</td>
                   <td className="px-4 py-3 text-rs-on-surface-variant">{o.phone}</td>
+                  <td className="px-4 py-3">
+                    <span className={`inline-block rounded-rs-full px-2 py-0.5 text-xs font-medium ${o.source === 'WHATSAPP' ? 'bg-rs-secondary-fixed text-rs-on-secondary-container' : 'bg-rs-surface-container-high text-rs-on-surface-variant'}`}>
+                      {o.source}
+                    </span>
+                  </td>
                   <td className="px-4 py-3 text-rs-on-surface-variant">{o.paymentType}</td>
                   <td className="px-4 py-3"><StatusChip status={o.paymentStatus} /></td>
                   <td className="px-4 py-3 text-rs-on-surface-variant">{o.items?.length ?? 0}</td>

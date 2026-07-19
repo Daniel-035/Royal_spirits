@@ -40,7 +40,6 @@ export type OrderItem = z.infer<typeof orderItemSchema>;
 export type UpdateOrderStatus = z.infer<typeof updateOrderStatusSchema>;
 export type UpdatePaymentStatus = z.infer<typeof updatePaymentStatusSchema>;
 export type OrderListQuery = z.infer<typeof orderListQuerySchema>;
-
 export type AdminLogin = z.infer<typeof adminLoginSchema>;
 export type Admin = z.infer<typeof adminSchema>;
 

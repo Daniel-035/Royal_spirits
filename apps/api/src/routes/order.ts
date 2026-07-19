@@ -5,129 +5,30 @@ import { prisma } from '../config/prisma';
 import { requireCustomer } from '../middleware/requireCustomer';
 import { requireAdmin } from '../middleware/requireAdmin';
 import { notificationService } from '../services/notifications';
+import { whatsappService } from '../services/whatsapp';
+import { createOrder } from '../services/order/createOrder';
 import { badRequest, notFound, forbidden } from '../utils/errors';
 import {
-  createOrderSchema,
   orderListQuerySchema,
   updateOrderStatusSchema,
   updatePaymentStatusSchema,
   allowedStatusTransitions,
-  DEFAULT_DELIVERY_CHARGE,
   type OrderStatus,
   type PaymentStatus,
 } from '@royal-spirits/shared';
 
 export const orderRouter = Router();
 
-function parseTimeToMinutes(t: string): number {
-  const [h, m] = t.split(':').map(Number);
-  return h * 60 + m;
-}
-
 orderRouter.post(
   '/',
   requireCustomer,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const input = createOrderSchema.parse(req.body);
-      const customerId = req.customer!.sub;
-      const customerPhone = req.customer!.phone;
-
-      const result = await prisma.$transaction(async (tx) => {
-        const zone = await tx.serviceableZone.findFirst({
-          where: { pincode: input.pincode, isActive: true },
-        });
-        if (!zone) {
-          throw badRequest('This pincode is not serviceable.');
-        }
-
-        const now = new Date();
-        const nowMinutes = now.getHours() * 60 + now.getMinutes();
-        const startMin = parseTimeToMinutes(zone.deliveryStartTime);
-        const endMin = parseTimeToMinutes(zone.deliveryEndTime);
-        if (nowMinutes < startMin || nowMinutes > endMin) {
-          throw badRequest(
-            `Orders can only be placed between ${zone.deliveryStartTime} and ${zone.deliveryEndTime}.`,
-          );
-        }
-
-        const productIds = input.items.map((i) => i.productId);
-        const products = await tx.product.findMany({
-          where: { id: { in: productIds }, isActive: true },
-        });
-        if (products.length !== productIds.length) {
-          throw badRequest('One or more products are unavailable.');
-        }
-
-        const orderItemsData: {
-          productId: string;
-          itemName: string;
-          quantity: number;
-          unitPrice: number;
-        }[] = [];
-        let subtotal = 0;
-
-        for (const item of input.items) {
-          const product = products.find((p) => p.id === item.productId)!;
-          if (item.quantity > product.stockQty) {
-            throw badRequest(
-              `Insufficient stock for ${product.name} (available: ${product.stockQty}).`,
-            );
-          }
-          orderItemsData.push({
-            productId: product.id,
-            itemName: product.name,
-            quantity: item.quantity,
-            unitPrice: product.price,
-          });
-          subtotal += product.price * item.quantity;
-        }
-
-        for (const item of input.items) {
-          await tx.product.update({
-            where: { id: item.productId },
-            data: { stockQty: { decrement: item.quantity } },
-          });
-        }
-
-        const deliveryCharge = DEFAULT_DELIVERY_CHARGE;
-        const totalAmount = subtotal + deliveryCharge;
-
-        let customerName = input.customerName ?? '';
-        if (!customerName) {
-          const cust = await tx.customer.findUnique({ where: { id: customerId } });
-          customerName = cust?.name ?? 'Customer';
-        }
-        if (input.customerName) {
-          await tx.customer.update({
-            where: { id: customerId },
-            data: { name: input.customerName },
-          });
-        }
-
-        const order = await tx.order.create({
-          data: {
-            customerId,
-            customerName,
-            phone: customerPhone,
-            status: 'Ordered',
-            paymentType: input.paymentType,
-            paymentStatus: input.paymentType === 'Online' ? 'Unpaid' : 'Unpaid',
-            deliveryAddress: input.deliveryAddress,
-            pincode: input.pincode,
-            subtotal,
-            deliveryCharge,
-            totalAmount,
-            ageConfirmed: input.ageConfirmed,
-            tncAccepted: input.tncAccepted,
-            items: {
-              create: orderItemsData,
-            },
-          },
-          include: { items: true },
-        });
-
-        return order;
+      const result = await createOrder({
+        customerId: req.customer!.sub,
+        customerPhone: req.customer!.phone,
+        source: 'WEB',
+        data: req.body,
       });
 
       res.status(201).json(result);
@@ -196,6 +97,7 @@ adminOrderRouter.get(
       if (query.status) where.status = query.status;
       if (query.paymentStatus) where.paymentStatus = query.paymentStatus;
       if (query.paymentType) where.paymentType = query.paymentType;
+      if (query.source) where.source = query.source;
       if (query.date) {
         const day = new Date(query.date);
         const next = new Date(day);
@@ -275,11 +177,16 @@ adminOrderRouter.patch(
         include: { items: true },
       });
 
-      if (status === 'Delivered') {
-        notificationService
-          .sendStatusUpdate(order.phone, updated.id, status)
-          .catch((e) => console.error('Notification failed:', e));
-      }
+      notificationService
+        .sendStatusUpdate(order.phone, updated.id, status)
+        .catch((e) => console.error('Notification failed:', e));
+
+      whatsappService
+        .sendText(
+          order.phone,
+          `Your Royal Spirits order #${updated.id.slice(0, 8)} is now: ${status}.`,
+        )
+        .catch((e) => console.error('WhatsApp notification failed:', e));
 
       res.json(updated);
     } catch (err) {

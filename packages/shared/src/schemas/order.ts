@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { orderStatusSchema, paymentTypeSchema, paymentStatusSchema, uuidSchema } from './product.js';
+import { orderStatusSchema, orderSourceSchema, paymentTypeSchema, paymentStatusSchema, uuidSchema } from './product.js';
 
 export const orderItemInputSchema = z.object({
   productId: uuidSchema,
@@ -31,6 +31,7 @@ export const orderSchema = z.object({
   customerId: z.string().uuid(),
   customerName: z.string(),
   phone: z.string(),
+  source: orderSourceSchema,
   status: orderStatusSchema,
   paymentType: paymentTypeSchema,
   paymentStatus: paymentStatusSchema,
@@ -58,6 +59,7 @@ export const orderListQuerySchema = z.object({
   status: orderStatusSchema.optional(),
   paymentStatus: paymentStatusSchema.optional(),
   paymentType: paymentTypeSchema.optional(),
+  source: orderSourceSchema.optional(),
   date: z.string().optional(),
   search: z.string().optional(),
   page: z.coerce.number().int().positive().default(1),

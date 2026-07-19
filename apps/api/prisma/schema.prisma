@@ -53,6 +53,7 @@ model Order {
   customer        Customer    @relation(fields: [customerId], references: [id])
   customerName    String
   phone           String
+  source          String      @default("WEB")
   status          String      @default("Ordered")
   paymentType     String      @default("Cash")
   paymentStatus   String      @default("Unpaid")
@@ -113,4 +114,32 @@ model OtpCode {
   createdAt DateTime @default(now())
 
   @@map("otp_codes")
+}
+
+model WhatsAppSession {
+  id          String   @id @default(uuid())
+  phone       String   @unique
+  state       String   @default("GREETING")
+  contextJson String   @default("{}")
+  cartJson    String   @default("[]")
+  customerName String?
+  lastIntentAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([phone])
+  @@map("whatsapp_sessions")
+}
+
+model WhatsAppEventLog {
+  id          String   @id @default(uuid())
+  waMessageId String   @unique
+  fromPhone   String
+  direction   String
+  type        String
+  payloadJson String
+  createdAt   DateTime @default(now())
+
+  @@index([fromPhone])
+  @@map("whatsapp_event_log")
 }

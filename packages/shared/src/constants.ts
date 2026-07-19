@@ -6,6 +6,9 @@ export const ORDER_STATUSES = [
 ] as const;
 export type OrderStatus = (typeof ORDER_STATUSES)[number];
 
+export const ORDER_SOURCES = ['WEB', 'WHATSAPP'] as const;
+export type OrderSource = (typeof ORDER_SOURCES)[number];
+
 export const PAYMENT_TYPES = ['Cash', 'Online'] as const;
 export type PaymentType = (typeof PAYMENT_TYPES)[number];
 

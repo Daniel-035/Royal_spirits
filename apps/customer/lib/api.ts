@@ -2,7 +2,9 @@ function getBase(): string {
   if (typeof window === 'undefined') {
     return process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:4000';
   }
-  return '';
+  const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL ?? '';
+  const isDev = apiBase.startsWith('http://localhost') || apiBase.startsWith('http://127.');
+  return isDev ? '' : apiBase;
 }
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
