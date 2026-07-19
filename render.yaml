@@ -1,6 +1,9 @@
 # Royal Spirits — Render infrastructure-as-code
 # Docs: https://render.com/docs/blueprint-spec
 # Deploy: connect this repo in the Render dashboard → "New" → "Blueprint"
+#
+# Render auto-detects pnpm from pnpm-lock.yaml at the repo root — there is no
+# "pnpm" runtime value. Node/pnpm versions are pinned via env vars below.
 
 databases:
   - name: royal-spirits-db
@@ -15,12 +18,9 @@ services:
   # ─────────────────────────────────────────────
   - type: web
     name: royal-spirits-api
-    runtime: pnpm
     plan: free
     region: oregon
     rootDir: apps/api
-    # Render auto-detects pnpm via pnpm-lock.yaml at repo root, but we pin
-    # Node + pnpm explicitly to avoid the node:sqlite / pnpm 11 issue.
     envVars:
       - key: NODE_VERSION
         value: "22.13.0"
@@ -57,7 +57,6 @@ services:
   # ─────────────────────────────────────────────
   - type: web
     name: royal-spirits-customer
-    runtime: pnpm
     plan: free
     region: oregon
     rootDir: apps/customer
@@ -81,7 +80,7 @@ services:
   # ─────────────────────────────────────────────
   - type: web
     name: royal-spirits-admin
-    runtime: pnpm
+    runtime: static
     plan: free
     region: oregon
     rootDir: apps/admin
