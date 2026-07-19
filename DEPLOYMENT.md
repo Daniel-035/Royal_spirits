@@ -35,22 +35,28 @@ This monorepo can deploy across two setups:
 4. Render reads `render.yaml` and provisions 4 resources: Postgres DB, API web service, customer web service, admin static site
 5. Click **Apply**
 
-### 2. Switch Prisma to Postgres
+### 2. How the buildpack works (native Node, no Docker)
 
-The repo's `apps/api/prisma/schema.prisma` is set to `sqlite` for local Windows dev (no Docker). For Render's Postgres you must switch the provider:
+`render.yaml` uses `runtime: node` for the API and customer web services. Render's native Node buildpack:
+- Reads `.nvmrc` → installs Node 22.13.0
+- Reads `packageManager` in `package.json` → uses pnpm 10.12.4 via Corepack
+- Reads `.npmrc` → disables the interactive modules-purge prompt
+- Runs `buildCommand` then `startCommand`
 
-```prisma
-datasource db {
-  provider = "postgresql"   // was "sqlite"
-  url      = env("DATABASE_URL")
-}
-```
+No Dockerfiles, no build context, no COPY. The admin SPA uses `runtime: static` (free, serves `dist/`).
 
-Commit and push. Render rebuilds and runs `prisma migrate deploy` + seed via the API `startCommand`.
+### 3. Prisma + Postgres (handled automatically)
 
-> Local dev note: keep a separate working copy / branch for Postgres, or flip the provider back to `sqlite` when developing locally. Your schema is already written to stay portable (enums stored as TEXT on SQLite, native enums on Postgres).
+The repo's `apps/api/prisma/schema.prisma` is `sqlite` for local Windows dev, but the committed migrations use SQLite dialect and don't apply to Postgres. The API's `startCommand` runs `apps/api/scripts/deploy.sh`, which:
+1. `sed` swaps `provider = "sqlite"` → `"postgresql"` in the schema
+2. `prisma generate` → rebuilds the client for Postgres
+3. `prisma db push --accept-data-loss` → applies the schema directly (no migration files)
+4. `prisma db seed` → creates admin + sample products + zones
+5. `pnpm start` → launches the Express server
 
-### 3. Set the env vars flagged `sync: false`
+> Local dev stays on SQLite — no change needed. The provider swap happens only in the deploy script.
+
+### 4. Set the env vars flagged `sync: false`
 
 After the first deploy, open each service and set these (they were left blank on purpose):
 

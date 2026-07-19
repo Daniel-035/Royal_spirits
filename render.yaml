@@ -2,9 +2,8 @@
 # Docs: https://render.com/docs/blueprint-spec
 # Deploy: connect this repo in the Render dashboard → "New" → "Blueprint"
 #
-# Render Blueprints require an explicit runtime. Node services use
-# `runtime: docker` with a Dockerfile (auto-detected pnpm via corepack).
-# The admin SPA is a `runtime: static` site (no region allowed).
+# Native Node buildpack (runtime: node) auto-detects pnpm from pnpm-lock.yaml
+# and reads Node version from .nvmrc. No Dockerfiles needed.
 
 databases:
   - name: royal-spirits-db
@@ -19,10 +18,13 @@ services:
   # ─────────────────────────────────────────────
   - type: web
     name: royal-spirits-api
-    runtime: docker
+    runtime: node
     plan: free
     region: oregon
-    dockerfilePath: ./apps/api/Dockerfile
+    rootDir: apps/api
+    buildCommand: cd ../.. && pnpm install --frozen-lockfile --config.confirm-modules-purge=false && pnpm build --filter @royal-spirits/api
+    startCommand: sh scripts/deploy.sh
+    healthCheckPath: /api/v1/health
     envVars:
       - key: NODE_ENV
         value: production
@@ -46,17 +48,19 @@ services:
         value: mock
       - key: PORT
         value: "4000"
-    healthCheckPath: /api/v1/health
 
   # ─────────────────────────────────────────────
   # Customer storefront (Next.js)
   # ─────────────────────────────────────────────
   - type: web
     name: royal-spirits-customer
-    runtime: docker
+    runtime: node
     plan: free
     region: oregon
-    dockerfilePath: ./apps/customer/Dockerfile
+    rootDir: apps/customer
+    buildCommand: cd ../.. && pnpm install --frozen-lockfile --config.confirm-modules-purge=false && pnpm build --filter @royal-spirits/customer
+    startCommand: pnpm --filter @royal-spirits/customer start
+    healthCheckPath: /
     envVars:
       - key: NODE_ENV
         value: production
@@ -64,7 +68,6 @@ services:
         sync: false
       - key: NEXT_PUBLIC_EXCISE_LICENSE_NUMBER
         value: L-EXCISE-00000
-    healthCheckPath: /
 
   # ─────────────────────────────────────────────
   # Admin panel (Vite SPA → static site)
@@ -74,15 +77,11 @@ services:
     runtime: static
     rootDir: apps/admin
     staticPublishPath: ./dist
+    buildCommand: cd ../.. && pnpm install --frozen-lockfile --config.confirm-modules-purge=false && pnpm build --filter @royal-spirits/admin
     envVars:
-      - key: NODE_VERSION
-        value: "22.13.0"
-      - key: PNPM_VERSION
-        value: "10.12.4"
       - key: NODE_ENV
         value: production
       - key: VITE_API_BASE_URL
         sync: false
       - key: VITE_EXCISE_LICENSE_NUMBER
         value: L-EXCISE-00000
-    buildCommand: cd ../.. && corepack enable && pnpm install --frozen-lockfile && pnpm build --filter @royal-spirits/admin
