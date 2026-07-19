@@ -58,6 +58,49 @@ export const api = {
   delete: <T>(path: string) => request<T>(path, { method: 'DELETE' }),
 };
 
+export interface OrderStreamHandlers {
+  onNew: (order: OrderStreamPayload) => void;
+  onUpdate: (order: OrderStreamPayload) => void;
+  onError?: (err: Event) => void;
+}
+
+export interface OrderStreamPayload {
+  id: string;
+  status: string;
+  paymentStatus: string;
+  paymentType: string;
+  customerName: string;
+  phone: string;
+  totalAmount: number;
+  source: string;
+  createdAt: string;
+}
+
+export function openOrderStream(handlers: OrderStreamHandlers): () => void {
+  const url = `${BASE}/admin/orders/stream`;
+  const source = new EventSource(url, { withCredentials: true });
+
+  source.addEventListener('order:new', (e) => {
+    try {
+      handlers.onNew(JSON.parse((e as MessageEvent).data) as OrderStreamPayload);
+    } catch {
+      // ignore malformed event
+    }
+  });
+  source.addEventListener('order:update', (e) => {
+    try {
+      handlers.onUpdate(JSON.parse((e as MessageEvent).data) as OrderStreamPayload);
+    } catch {
+      // ignore malformed event
+    }
+  });
+  source.onerror = (e) => {
+    handlers.onError?.(e);
+  };
+
+  return () => source.close();
+}
+
 export async function uploadImage(
   path: string,
   file: File,

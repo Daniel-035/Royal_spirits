@@ -166,16 +166,40 @@ export function OrderDetailPage() {
               <p className="mt-1 whitespace-pre-line text-sm text-rs-on-surface">{order.deliveryAddress}</p>
               <p className="mt-2 text-sm text-rs-on-surface-variant">Pincode: <span className="font-medium text-rs-on-surface">{order.pincode}</span></p>
             </div>
-            <div className="mt-4 grid gap-4 border-t border-rs-outline-variant pt-4 sm:grid-cols-2">
-              <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-rs-on-surface-variant">Order Source</p>
-                <p className="mt-1 text-sm text-rs-on-surface">{order.source}</p>
-              </div>
-              <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-rs-on-surface-variant">Order Date</p>
-                <p className="mt-1 text-sm text-rs-on-surface">{new Date(order.createdAt).toLocaleString()}</p>
-              </div>
-            </div>
+      <div className="mt-4 grid gap-4 border-t border-rs-outline-variant pt-4 sm:grid-cols-2">
+        <div>
+          <p className="text-xs font-medium uppercase tracking-wide text-rs-on-surface-variant">Order Source</p>
+          <p className="mt-1 text-sm text-rs-on-surface">{order.source}</p>
+        </div>
+        <div>
+          <p className="text-xs font-medium uppercase tracking-wide text-rs-on-surface-variant">Order Date</p>
+          <p className="mt-1 text-sm text-rs-on-surface">{new Date(order.createdAt).toLocaleString()}</p>
+        </div>
+        {order.estimatedDeliveryAt && (
+          <div>
+            <p className="text-xs font-medium uppercase tracking-wide text-rs-on-surface-variant">Est. Delivery</p>
+            <p className="mt-1 text-sm text-rs-on-surface">
+              {new Date(order.estimatedDeliveryAt).toLocaleString()}
+            </p>
+          </div>
+        )}
+        {order.deliveredAt && (
+          <div>
+            <p className="text-xs font-medium uppercase tracking-wide text-rs-on-surface-variant">Delivered At</p>
+            <p className="mt-1 text-sm text-rs-status-delivered">
+              {new Date(order.deliveredAt).toLocaleString()}
+            </p>
+          </div>
+        )}
+        {order.paidAt && (
+          <div>
+            <p className="text-xs font-medium uppercase tracking-wide text-rs-on-surface-variant">Paid At</p>
+            <p className="mt-1 text-sm text-rs-on-surface">
+              {new Date(order.paidAt).toLocaleString()}
+            </p>
+          </div>
+        )}
+      </div>
           </div>
         </div>
 
@@ -187,11 +211,28 @@ export function OrderDetailPage() {
               <span className="text-sm text-rs-on-surface-variant">Status:</span>
               <StatusChip status={order.paymentStatus} />
             </div>
+            {order.paidAt && (
+              <p className="mt-2 text-xs text-rs-on-surface-variant">
+                Paid at {new Date(order.paidAt).toLocaleString()}
+              </p>
+            )}
+            {order.paymentType === 'Cash' &&
+              order.status !== 'Delivered' &&
+              order.paymentStatus === 'Unpaid' && (
+                <p className="mt-2 text-xs text-rs-on-surface-variant">
+                  Cash orders are collected on delivery. Mark as Delivered to auto-confirm payment.
+                </p>
+              )}
             <Button
-              variant="ghost"
+              variant={order.paymentStatus === 'Unpaid' ? 'primary' : 'ghost'}
               size="sm"
               className="mt-3"
               onClick={togglePaymentStatus}
+              disabled={
+                order.paymentStatus === 'Unpaid' &&
+                order.paymentType === 'Cash' &&
+                order.status !== 'Delivered'
+              }
             >
               Mark as {order.paymentStatus === 'Paid' ? 'Unpaid' : 'Paid'}
             </Button>

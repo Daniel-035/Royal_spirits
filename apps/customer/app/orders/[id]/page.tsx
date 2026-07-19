@@ -57,7 +57,37 @@ export default function OrderConfirmationPage() {
         </p>
         <p className="mt-1 text-sm text-rs-on-surface-variant">
           Payment: {order.paymentType} · {order.paymentStatus}
+          {order.paidAt && (
+            <span className="ml-1">
+              (paid {new Date(order.paidAt).toLocaleString()})
+            </span>
+          )}
         </p>
+
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <div className="rounded-rs border border-rs-outline-variant bg-rs-surface-container p-3 text-sm">
+            <p className="text-xs uppercase tracking-wide text-rs-on-surface-variant">
+              Estimated delivery
+            </p>
+            <p className="mt-1 font-medium text-rs-on-surface">
+              {order.estimatedDeliveryAt
+                ? new Date(order.estimatedDeliveryAt).toLocaleString()
+                : 'Not available'}
+            </p>
+          </div>
+          <div className="rounded-rs border border-rs-outline-variant bg-rs-surface-container p-3 text-sm">
+            <p className="text-xs uppercase tracking-wide text-rs-on-surface-variant">
+              Actual delivery
+            </p>
+            <p className="mt-1 font-medium text-rs-on-surface">
+              {order.deliveredAt
+                ? new Date(order.deliveredAt).toLocaleString()
+                : order.status === 'Cancelled'
+                  ? 'Cancelled'
+                  : 'Pending'}
+            </p>
+          </div>
+        </div>
 
         <h2 className="mt-6 font-display text-lg font-semibold text-rs-on-surface">Items</h2>
         <div className="mt-2 space-y-2">

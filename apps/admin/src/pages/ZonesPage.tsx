@@ -3,7 +3,12 @@ import { Container, Button, Input } from '@royal-spirits/ui';
 import { api } from '../lib/api';
 import type { Zone } from '@royal-spirits/shared';
 
-const EMPTY = { pincode: '', deliveryStartTime: '10:00', deliveryEndTime: '21:00' };
+const EMPTY = {
+  pincode: '',
+  deliveryStartTime: '10:00',
+  deliveryEndTime: '21:00',
+  deliveryWindowMins: 90,
+};
 
 export function ZonesPage() {
   const [zones, setZones] = useState<Zone[]>([]);
@@ -42,6 +47,7 @@ export function ZonesPage() {
       pincode: zone.pincode,
       deliveryStartTime: zone.deliveryStartTime,
       deliveryEndTime: zone.deliveryEndTime,
+      deliveryWindowMins: zone.deliveryWindowMins,
     });
   }
 
@@ -89,6 +95,17 @@ export function ZonesPage() {
           onChange={(e) => setForm({ ...form, deliveryEndTime: e.target.value })}
           required
         />
+        <Input
+          label="ETA window (mins)"
+          type="number"
+          min={1}
+          max={600}
+          value={form.deliveryWindowMins}
+          onChange={(e) =>
+            setForm({ ...form, deliveryWindowMins: Number(e.target.value) })
+          }
+          required
+        />
         <Button type="submit">{editingId ? 'Update Zone' : 'Add Zone'}</Button>
         {editingId && (
           <Button
@@ -112,6 +129,7 @@ export function ZonesPage() {
               <th className="px-4 py-3">Pincode</th>
               <th className="px-4 py-3">Start</th>
               <th className="px-4 py-3">End</th>
+              <th className="px-4 py-3">ETA</th>
               <th className="px-4 py-3">Active</th>
               <th className="px-4 py-3">Actions</th>
             </tr>
@@ -119,13 +137,13 @@ export function ZonesPage() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-rs-on-surface-variant">
+                <td colSpan={6} className="px-4 py-8 text-center text-rs-on-surface-variant">
                   Loading...
                 </td>
               </tr>
             ) : zones.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-rs-on-surface-variant">
+                <td colSpan={6} className="px-4 py-8 text-center text-rs-on-surface-variant">
                   No zones configured.
                 </td>
               </tr>
@@ -135,6 +153,7 @@ export function ZonesPage() {
                   <td className="px-4 py-3 font-medium text-rs-on-surface">{z.pincode}</td>
                   <td className="px-4 py-3 text-rs-on-surface-variant">{z.deliveryStartTime}</td>
                   <td className="px-4 py-3 text-rs-on-surface-variant">{z.deliveryEndTime}</td>
+                  <td className="px-4 py-3 text-rs-on-surface-variant">{z.deliveryWindowMins}m</td>
                   <td className="px-4 py-3">
                     <span
                       className={

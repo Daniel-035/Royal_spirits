@@ -83,6 +83,26 @@ export default function MyOrdersPage() {
                   ₹{order.totalAmount.toFixed(0)}
                 </span>
               </div>
+              {(order.estimatedDeliveryAt || order.deliveredAt) && (
+                <div className="mt-3 flex flex-wrap gap-x-6 gap-y-1 border-t border-rs-outline-variant pt-3 text-xs">
+                  {order.estimatedDeliveryAt && (
+                    <span className="text-rs-on-surface-variant">
+                      Est. delivery:{' '}
+                      <span className="font-medium text-rs-on-surface">
+                        {new Date(order.estimatedDeliveryAt).toLocaleString()}
+                      </span>
+                    </span>
+                  )}
+                  {order.deliveredAt && (
+                    <span className="text-rs-status-delivered">
+                      Delivered:{' '}
+                      <span className="font-medium">
+                        {new Date(order.deliveredAt).toLocaleString()}
+                      </span>
+                    </span>
+                  )}
+                </div>
+              )}
             </Link>
           ))}
         </div>

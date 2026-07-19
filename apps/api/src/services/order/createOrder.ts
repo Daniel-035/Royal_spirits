@@ -1,6 +1,7 @@
 import type { Prisma } from '@prisma/client';
 import { prisma } from '../../config/prisma';
 import { badRequest } from '../../utils/errors';
+import { orderEvents } from './orderEvents';
 import {
   createOrderSchema,
   DEFAULT_DELIVERY_CHARGE,
@@ -84,6 +85,10 @@ export async function createOrder(input: CreateOrderInput) {
     const deliveryCharge = DEFAULT_DELIVERY_CHARGE;
     const totalAmount = subtotal + deliveryCharge;
 
+    const estimatedDeliveryAt = new Date(
+      now.getTime() + (zone.deliveryWindowMins ?? 90) * 60000,
+    );
+
     let customerName = parsed.customerName ?? '';
     if (!customerName) {
       const cust = await tx.customer.findUnique({ where: { id: customerId } });
@@ -112,11 +117,24 @@ export async function createOrder(input: CreateOrderInput) {
         totalAmount,
         ageConfirmed: parsed.ageConfirmed,
         tncAccepted: parsed.tncAccepted,
+        estimatedDeliveryAt,
         items: {
           create: orderItemsData,
         },
       },
       include: { items: true },
+    });
+
+    orderEvents.announceNew({
+      id: order.id,
+      customerName: order.customerName,
+      phone: order.phone,
+      source: order.source,
+      status: order.status,
+      paymentType: order.paymentType,
+      paymentStatus: order.paymentStatus,
+      totalAmount: order.totalAmount,
+      createdAt: order.createdAt,
     });
 
     return order;

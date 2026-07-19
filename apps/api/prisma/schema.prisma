@@ -54,20 +54,25 @@ model Order {
   customerName    String
   phone           String
   source          String      @default("WEB")
-  status          String      @default("Ordered")
-  paymentType     String      @default("Cash")
-  paymentStatus   String      @default("Unpaid")
-  deliveryAddress String
-  pincode         String
-  subtotal        Float
-  deliveryCharge  Float       @default(0)
-  totalAmount     Float
-  ageConfirmed    Boolean
-  tncAccepted     Boolean
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
-  items           OrderItem[]
+  status              String      @default("Ordered")
+  paymentType         String      @default("Cash")
+  paymentStatus       String      @default("Unpaid")
+  deliveryAddress     String
+  pincode             String
+  subtotal            Float
+  deliveryCharge      Float       @default(0)
+  totalAmount         Float
+  ageConfirmed        Boolean
+  tncAccepted         Boolean
+  estimatedDeliveryAt DateTime?
+  deliveredAt         DateTime?
+  paidAt              DateTime?
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+  items               OrderItem[]
 
+  @@index([status])
+  @@index([paymentStatus])
   @@map("orders")
 }
 
@@ -94,13 +99,14 @@ model Admin {
 }
 
 model ServiceableZone {
-  id                String   @id @default(uuid())
-  pincode           String   @unique
-  deliveryStartTime String
-  deliveryEndTime   String
-  isActive          Boolean  @default(true)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id                  String   @id @default(uuid())
+  pincode             String   @unique
+  deliveryStartTime   String
+  deliveryEndTime     String
+  deliveryWindowMins  Int      @default(90)
+  isActive            Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 
   @@map("serviceable_zones")
 }

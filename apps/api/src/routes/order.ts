@@ -7,6 +7,7 @@ import { requireAdmin } from '../middleware/requireAdmin';
 import { notificationService } from '../services/notifications';
 import { whatsappService } from '../services/whatsapp';
 import { createOrder } from '../services/order/createOrder';
+import { orderEvents, type OrderEventPayload } from '../services/order/orderEvents';
 import { badRequest, notFound, forbidden } from '../utils/errors';
 import {
   orderListQuerySchema,
@@ -18,6 +19,30 @@ import {
 } from '@royal-spirits/shared';
 
 export const orderRouter = Router();
+
+function toOrderEventPayload(order: {
+  id: string;
+  customerName: string;
+  phone: string;
+  source: string;
+  status: string;
+  paymentType: string;
+  paymentStatus: string;
+  totalAmount: number;
+  createdAt: Date;
+}): OrderEventPayload {
+  return {
+    id: order.id,
+    customerName: order.customerName,
+    phone: order.phone,
+    source: order.source,
+    status: order.status,
+    paymentType: order.paymentType,
+    paymentStatus: order.paymentStatus,
+    totalAmount: order.totalAmount,
+    createdAt: order.createdAt,
+  };
+}
 
 orderRouter.post(
   '/',
@@ -87,6 +112,35 @@ orderRouter.get(
 export const adminOrderRouter = Router();
 
 adminOrderRouter.use(requireAdmin);
+
+adminOrderRouter.get('/stream', (req: Request, res: Response) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache, no-transform');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
+  res.flushHeaders();
+
+  const heartbeat = setInterval(() => {
+    res.write(`: ping ${Date.now()}\n\n`);
+  }, 25000);
+
+  const onNew = (order: OrderEventPayload) => {
+    res.write(`event: order:new\ndata: ${JSON.stringify(order)}\n\n`);
+  };
+  const onUpdate = (order: OrderEventPayload) => {
+    res.write(`event: order:update\ndata: ${JSON.stringify(order)}\n\n`);
+  };
+
+  orderEvents.on('new', onNew);
+  orderEvents.on('update', onUpdate);
+
+  req.on('close', () => {
+    clearInterval(heartbeat);
+    orderEvents.off('new', onNew);
+    orderEvents.off('update', onUpdate);
+    res.end();
+  });
+});
 
 adminOrderRouter.get(
   '/',
@@ -167,8 +221,12 @@ adminOrderRouter.patch(
         status: status as OrderStatus,
       };
 
-      if (status === 'Delivered' && order.paymentType === 'Cash') {
-        updateData.paymentStatus = 'Paid' as PaymentStatus;
+      if (status === 'Delivered') {
+        updateData.deliveredAt = new Date();
+        if (order.paymentType === 'Cash') {
+          updateData.paymentStatus = 'Paid' as PaymentStatus;
+          updateData.paidAt = new Date();
+        }
       }
 
       const updated = await prisma.order.update({
@@ -176,6 +234,8 @@ adminOrderRouter.patch(
         data: updateData,
         include: { items: true },
       });
+
+      orderEvents.announceUpdate(toOrderEventPayload(updated));
 
       notificationService
         .sendStatusUpdate(order.phone, updated.id, status)
@@ -204,11 +264,37 @@ adminOrderRouter.patch(
       if (!order) {
         return next(notFound('Order not found'));
       }
+      if (
+        paymentStatus === 'Paid' &&
+        order.paymentType === 'Cash' &&
+        order.status !== 'Delivered'
+      ) {
+        return next(
+          badRequest(
+            'Cash orders are collected on delivery. Mark the order as Delivered first.',
+          ),
+        );
+      }
+      const updateData: Prisma.OrderUpdateInput = {
+        paymentStatus: paymentStatus as PaymentStatus,
+      };
+      if (paymentStatus === 'Paid') {
+        updateData.paidAt = new Date();
+      }
       const updated = await prisma.order.update({
         where: { id: req.params.id },
-        data: { paymentStatus: paymentStatus as PaymentStatus },
+        data: updateData,
         include: { items: true },
       });
+
+      orderEvents.announceUpdate(toOrderEventPayload(updated));
+
+      if (paymentStatus === 'Paid') {
+        notificationService
+          .sendStatusUpdate(order.phone, updated.id, 'Paid')
+          .catch((e) => console.error('Notification failed:', e));
+      }
+
       res.json(updated);
     } catch (err) {
       next(err);
