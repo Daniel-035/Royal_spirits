@@ -72,7 +72,6 @@ services:
   - type: web
     name: royal-spirits-admin
     runtime: static
-    plan: starter
     rootDir: apps/admin
     staticPublishPath: ./dist
     envVars:
