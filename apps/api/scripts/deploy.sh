@@ -8,10 +8,11 @@ set -e
 # schema with `prisma db push` (the committed migrations use SQLite dialect and
 # don't apply to Postgres), seed, then start the server.
 #
-# This file runs in the repo root context (apps/api is the Render rootDir), so
-# the prisma schema lives at ./prisma/schema.prisma.
+# This script runs from the repo root (Render startCommand context), so the
+# Prisma schema lives at apps/api/prisma/schema.prisma.
 
-SCHEMA=./prisma/schema.prisma
+API_DIR=apps/api
+SCHEMA=$API_DIR/prisma/schema.prisma
 
 echo "==> Switching Prisma provider to postgresql"
 sed -i 's/provider = "sqlite"/provider = "postgresql"/' "$SCHEMA"
