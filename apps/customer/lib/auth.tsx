@@ -5,6 +5,7 @@ import { api } from './api';
 
 interface Customer {
   id: string;
+  email?: string;
   phone: string;
   name: string | null;
 }
@@ -12,8 +13,8 @@ interface Customer {
 interface AuthContextValue {
   customer: Customer | null;
   loading: boolean;
-  sendOtp: (phone: string) => Promise<void>;
-  verifyOtp: (phone: string, code: string, name?: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
+  signup: (email: string, password: string, phone: string, name: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -31,14 +32,14 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
       .finally(() => setLoading(false));
   }, []);
 
-  async function sendOtp(phone: string) {
-    await api.post('/auth/customer/otp/send', { phone });
+  async function login(email: string, password: string) {
+    const user = await api.post<Customer>('/auth/customer/login', { email, password });
+    setCustomer(user);
   }
 
-  async function verifyOtp(phone: string, code: string, name?: string) {
-    await api.post('/auth/customer/otp/verify', { phone, code, name });
-    const me = await api.get<Customer>('/auth/customer/me');
-    setCustomer(me);
+  async function signup(email: string, password: string, phone: string, name: string) {
+    const user = await api.post<Customer>('/auth/customer/signup', { email, password, phone, name });
+    setCustomer(user);
   }
 
   async function logout() {
@@ -47,7 +48,7 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ customer, loading, sendOtp, verifyOtp, logout }}>
+    <AuthContext.Provider value={{ customer, loading, login, signup, logout }}>
       {children}
     </AuthContext.Provider>
   );

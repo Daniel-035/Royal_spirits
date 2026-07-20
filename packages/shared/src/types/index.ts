@@ -22,6 +22,8 @@ import {
   validatePincodeSchema,
   sendOtpSchema,
   verifyOtpSchema,
+  customerSignupSchema,
+  customerLoginSchema,
 } from '../schemas/index.js';
 
 export type Product = z.infer<typeof productSchema>;
@@ -50,6 +52,8 @@ export type ValidatePincode = z.infer<typeof validatePincodeSchema>;
 
 export type SendOtp = z.infer<typeof sendOtpSchema>;
 export type VerifyOtp = z.infer<typeof verifyOtpSchema>;
+export type CustomerSignup = z.infer<typeof customerSignupSchema>;
+export type CustomerLogin = z.infer<typeof customerLoginSchema>;
 
 export interface ApiError {
   error: {

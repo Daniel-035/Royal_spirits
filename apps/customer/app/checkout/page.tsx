@@ -1,12 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Container, Button, Input } from '@royal-spirits/ui';
 import { useCart } from '../../lib/cart';
 import { useCustomerAuth } from '../../lib/auth';
 import { api } from '../../lib/api';
-import { OtpLoginModal } from '../../components/OtpLoginModal';
+import { AuthModal } from '../../components/AuthModal';
 import { RESPONSIBLE_DRINKING_DISCLAIMER } from '@royal-spirits/shared';
 import type { Order } from '@royal-spirits/shared';
 
@@ -14,10 +14,10 @@ export default function CheckoutPage() {
   const router = useRouter();
   const { items, subtotal, clear } = useCart();
   const { customer } = useCustomerAuth();
-  const [showOtp, setShowOtp] = useState(false);
+  const [showAuth, setShowAuth] = useState(false);
 
   const [name, setName] = useState(customer?.name ?? '');
-  const [phone] = useState(customer?.phone ?? '');
+  const [phone, setPhone] = useState(customer?.phone ?? '');
   const [address, setAddress] = useState('');
   const [pincode, setPincode] = useState('');
   const [ageConfirmed, setAgeConfirmed] = useState(false);
@@ -26,6 +26,13 @@ export default function CheckoutPage() {
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [pincodeValid, setPincodeValid] = useState<{ serviceable: boolean; withinHours?: boolean } | null>(null);
+
+  useEffect(() => {
+    if (customer) {
+      setName(customer.name ?? '');
+      setPhone(customer.phone ?? '');
+    }
+  }, [customer]);
 
   const total = subtotal();
 
@@ -48,7 +55,7 @@ export default function CheckoutPage() {
   async function handlePlaceOrder() {
     setError('');
     if (!customer) {
-      setShowOtp(true);
+      setShowAuth(true);
       return;
     }
     if (!name || !address || !/^\d{6}$/.test(pincode)) {
@@ -95,7 +102,7 @@ export default function CheckoutPage() {
         <div className="space-y-4 lg:col-span-2">
           {!customer && (
             <div className="rounded-rs-lg border border-rs-secondary bg-rs-secondary-fixed p-4 text-sm">
-              You need to sign in (phone OTP) to place an order. The login prompt will appear when you click Place Order.
+              You need to sign in or register to place an order. The prompt will appear when you click Place Order.
             </div>
           )}
           <Input
@@ -231,12 +238,12 @@ export default function CheckoutPage() {
               onClick={handlePlaceOrder}
               disabled={submitting}
             >
-              {submitting ? 'Placing...' : customer ? 'Place Order' : 'Sign in to Place Order'}
+              {submitting ? 'Placing...' : customer ? 'Place Order' : 'Sign In / Register to Place Order'}
             </Button>
           </div>
         </div>
       </div>
-      {showOtp && <OtpLoginModal onClose={() => setShowOtp(false)} />}
+      {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
     </Container>
   );
 }

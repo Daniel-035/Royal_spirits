@@ -47,8 +47,34 @@ services:
         value: "true"
       - key: OTP_PROVIDER
         value: mock
+      - key: OTP_MSG91_AUTH_KEY
+        sync: false
+      - key: OTP_MSG91_SENDER_ID
+        value: RSPIRT
+      - key: OTP_MSG91_TEMPLATE_ID
+        sync: false
       - key: WHATSAPP_PROVIDER
         value: mock
+      - key: WHATSAPP_ACCESS_TOKEN
+        sync: false
+      - key: WHATSAPP_PHONE_NUMBER_ID
+        sync: false
+      - key: WHATSAPP_APP_SECRET
+        sync: false
+      - key: WHATSAPP_VERIFY_TOKEN
+        sync: false
+      - key: LLM_PROVIDER
+        value: mock
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: IMAGE_PROVIDER
+        value: local
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
       - key: PORT
         value: "4000"
 

@@ -2,12 +2,14 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Container, Button, Input } from '@royal-spirits/ui';
 import { useCart } from '../../lib/cart';
 import { api } from '../../lib/api';
 import type { PincodeValidation } from '@royal-spirits/shared';
 
 export default function CartPage() {
+  const router = useRouter();
   const { items, setQuantity, remove, subtotal } = useCart();
   const [pincode, setPincode] = useState('');
   const [validation, setValidation] = useState<PincodeValidation | null>(null);
@@ -150,6 +152,7 @@ export default function CartPage() {
                 variant="primary"
                 fullWidth
                 disabled={!canCheckout}
+                onClick={() => router.push('/checkout')}
                 className="mt-6"
               >
                 Proceed to Checkout

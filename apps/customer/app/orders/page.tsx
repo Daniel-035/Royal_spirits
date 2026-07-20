@@ -5,14 +5,14 @@ import Link from 'next/link';
 import { Container, StatusChip } from '@royal-spirits/ui';
 import { api } from '../../lib/api';
 import { useCustomerAuth } from '../../lib/auth';
-import { OtpLoginModal } from '../../components/OtpLoginModal';
+import { AuthModal } from '../../components/AuthModal';
 import type { Order } from '@royal-spirits/shared';
 
 export default function MyOrdersPage() {
   const { customer, loading: authLoading } = useCustomerAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showOtp, setShowOtp] = useState(false);
+  const [showAuth, setShowAuth] = useState(false);
 
   useEffect(() => {
     if (!customer) {
@@ -41,12 +41,12 @@ export default function MyOrdersPage() {
           Sign in to view your order history.
         </p>
         <button
-          onClick={() => setShowOtp(true)}
+          onClick={() => setShowAuth(true)}
           className="mt-4 inline-flex h-11 items-center rounded-rs bg-rs-primary px-6 text-base text-rs-on-primary hover:opacity-90"
         >
-          Sign in with OTP
+          Sign In / Register
         </button>
-        {showOtp && <OtpLoginModal onClose={() => setShowOtp(false)} />}
+        {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
       </Container>
     );
   }

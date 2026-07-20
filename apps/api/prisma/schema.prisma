@@ -26,12 +26,14 @@ model Product {
 }
 
 model Customer {
-  id        String            @id @default(uuid())
-  phone     String            @unique
-  name      String?
-  createdAt DateTime          @default(now())
-  addresses CustomerAddress[]
-  orders    Order[]
+  id           String            @id @default(uuid())
+  phone        String            @unique
+  name         String?
+  email        String?           @unique
+  passwordHash String?
+  createdAt    DateTime          @default(now())
+  addresses    CustomerAddress[]
+  orders       Order[]
 
   @@map("customers")
 }
