@@ -87,6 +87,18 @@ orderRouter.get(
   },
 );
 
+async function getShopDetails() {
+  const shopInfo = await prisma.admin.findFirst({
+    orderBy: { createdAt: 'asc' },
+  });
+  return {
+    name: shopInfo?.businessName || process.env.SHOP_NAME || 'Royal Spirits',
+    address: shopInfo?.shopAddress || process.env.SHOP_ADDRESS || '123 Royal Spirits St',
+    phone: shopInfo?.phone || process.env.SHOP_PHONE || '+91 99999 99999',
+    license: shopInfo?.licenseNumber || process.env.VITE_EXCISE_LICENSE_NUMBER || 'L-EXCISE-00000',
+  };
+}
+
 orderRouter.get(
   '/:id',
   requireCustomer,
@@ -102,7 +114,8 @@ orderRouter.get(
       if (order.customerId !== req.customer!.sub) {
         return next(forbidden('You can only view your own orders'));
       }
-      res.json(order);
+      const shopDetails = await getShopDetails();
+      res.json({ ...order, shopDetails });
     } catch (err) {
       next(err);
     }
@@ -194,7 +207,8 @@ adminOrderRouter.get(
       if (!order) {
         return next(notFound('Order not found'));
       }
-      res.json(order);
+      const shopDetails = await getShopDetails();
+      res.json({ ...order, shopDetails });
     } catch (err) {
       next(err);
     }

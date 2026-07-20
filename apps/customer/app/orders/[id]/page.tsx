@@ -7,9 +7,18 @@ import { Container, StatusChip } from '@royal-spirits/ui';
 import { api } from '../../../lib/api';
 import type { Order } from '@royal-spirits/shared';
 
+interface ExtendedOrder extends Order {
+  shopDetails?: {
+    name: string;
+    address: string;
+    phone: string;
+    license: string;
+  };
+}
+
 export default function OrderConfirmationPage() {
   const { id } = useParams<{ id: string }>();
-  const [order, setOrder] = useState<Order | null>(null);
+  const [order, setOrder] = useState<ExtendedOrder | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -107,6 +116,18 @@ export default function OrderConfirmationPage() {
             <span className="text-rs-on-surface">₹{order.totalAmount.toFixed(0)}</span>
           </div>
         </div>
+
+        {order.shopDetails && (
+          <div className="mt-6 rounded-rs border border-rs-outline-variant bg-rs-surface-low p-4 text-sm">
+            <h3 className="font-display font-semibold text-rs-on-surface">Shop Details</h3>
+            <div className="mt-2 space-y-1 text-rs-on-surface-variant">
+              <p><strong className="text-rs-on-surface">Shop:</strong> {order.shopDetails.name}</p>
+              <p><strong className="text-rs-on-surface">Address:</strong> {order.shopDetails.address}</p>
+              <p><strong className="text-rs-on-surface">Phone:</strong> {order.shopDetails.phone}</p>
+              <p><strong className="text-rs-on-surface">Excise License:</strong> {order.shopDetails.license}</p>
+            </div>
+          </div>
+        )}
 
         <div className="mt-6 flex gap-3">
           <Link

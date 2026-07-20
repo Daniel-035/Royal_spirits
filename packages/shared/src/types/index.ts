@@ -24,6 +24,11 @@ import {
   verifyOtpSchema,
   customerSignupSchema,
   customerLoginSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
+  updateProfileSchema,
+  adminRegisterSchema,
+  updateAdminProfileSchema,
 } from '../schemas/index.js';
 
 export type Product = z.infer<typeof productSchema>;
@@ -54,6 +59,11 @@ export type SendOtp = z.infer<typeof sendOtpSchema>;
 export type VerifyOtp = z.infer<typeof verifyOtpSchema>;
 export type CustomerSignup = z.infer<typeof customerSignupSchema>;
 export type CustomerLogin = z.infer<typeof customerLoginSchema>;
+export type ForgotPassword = z.infer<typeof forgotPasswordSchema>;
+export type ResetPassword = z.infer<typeof resetPasswordSchema>;
+export type UpdateProfile = z.infer<typeof updateProfileSchema>;
+export type AdminRegister = z.infer<typeof adminRegisterSchema>;
+export type UpdateAdminProfile = z.infer<typeof updateAdminProfileSchema>;
 
 export interface ApiError {
   error: {

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useCart } from '../lib/cart';
-import { CustomerAuthProvider } from '../lib/auth';
+import { CustomerAuthProvider, useCustomerAuth } from '../lib/auth';
 import { Container } from '@royal-spirits/ui';
 import type { ReactNode } from 'react';
 
@@ -10,6 +10,7 @@ const LICENSE = process.env.NEXT_PUBLIC_EXCISE_LICENSE_NUMBER ?? 'L-EXCISE-00000
 
 export function SiteHeader() {
   const count = useCart((s) => s.items.reduce((sum, i) => sum + i.quantity, 0));
+  const { customer, logout } = useCustomerAuth();
 
   return (
     <header className="border-b border-rs-outline-variant bg-rs-surface-lowest">
@@ -35,6 +36,23 @@ export function SiteHeader() {
               </span>
             )}
           </Link>
+          {customer ? (
+            <>
+              <Link href="/profile" className="text-rs-on-surface-variant hover:text-rs-on-surface">
+                Profile
+              </Link>
+              <button
+                onClick={() => logout()}
+                className="text-rs-on-surface-variant hover:text-rs-error font-medium"
+              >
+                Sign Out
+              </button>
+            </>
+          ) : (
+            <Link href="/login" className="text-rs-on-surface font-semibold hover:underline">
+              Sign In
+            </Link>
+          )}
         </nav>
       </Container>
     </header>

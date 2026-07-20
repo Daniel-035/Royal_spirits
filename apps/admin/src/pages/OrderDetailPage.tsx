@@ -66,6 +66,122 @@ export function OrderDetailPage() {
     }
   }
 
+  function shareViaWhatsApp() {
+    if (!order) return;
+    const itemsText = order.items?.map(item => `- ${item.itemName} x ${item.quantity} (₹${(item.unitPrice * item.quantity).toFixed(0)})`).join('\n') || '';
+    const shopName = (order as any).shopDetails?.name || 'Royal Spirits';
+    const shopAddress = (order as any).shopDetails?.address || '123 Royal Spirits St';
+    const shopPhone = (order as any).shopDetails?.phone || '+91 99999 99999';
+    const shopLicense = (order as any).shopDetails?.license || 'L-EXCISE-00000';
+
+    const text = [
+      `*${shopName}*`,
+      `Excise License: ${shopLicense}`,
+      `Address: ${shopAddress}`,
+      `Phone: ${shopPhone}`,
+      `--------------------------------`,
+      `*INVOICE*`,
+      `Order #: ${order.id.slice(0, 8)}`,
+      `Date: ${new Date(order.createdAt).toLocaleString()}`,
+      `--------------------------------`,
+      `*Items:*`,
+      itemsText,
+      `--------------------------------`,
+      `*Total:* ₹${order.totalAmount.toFixed(0)} (${order.paymentType} - ${order.paymentStatus})`,
+      `--------------------------------`,
+      `*Delivery Details:*`,
+      `Customer: ${order.customerName}`,
+      `Address: ${order.deliveryAddress}`,
+      `Pincode: ${order.pincode}`,
+      `--------------------------------`,
+      `_Warning: Consumption of alcohol is injurious to health. Be responsible. 21+ only._`
+    ].join('\n');
+
+    const formattedPhone = order.phone.replace(/[^0-9]/g, '');
+    const cleanPhone = formattedPhone.length === 10 ? `91${formattedPhone}` : formattedPhone;
+    const url = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(text)}`;
+    window.open(url, '_blank');
+  }
+
+  function printInvoice() {
+    if (!order) return;
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    const itemsHtml = order.items?.map(item => `
+      <tr>
+        <td style="padding: 8px 0; border-bottom: 1px solid #ddd;">${item.itemName} x ${item.quantity}</td>
+        <td style="padding: 8px 0; border-bottom: 1px solid #ddd; text-align: right;">₹${(item.unitPrice * item.quantity).toFixed(0)}</td>
+      </tr>
+    `).join('') || '';
+
+    const shopName = (order as any).shopDetails?.name || 'Royal Spirits';
+    const shopAddress = (order as any).shopDetails?.address || '123 Royal Spirits St';
+    const shopPhone = (order as any).shopDetails?.phone || '+91 99999 99999';
+    const shopLicense = (order as any).shopDetails?.license || 'L-EXCISE-00000';
+
+    const html = `
+      <html>
+        <head>
+          <title>Invoice - Order #${order.id.slice(0, 8)}</title>
+          <style>
+            body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333; margin: 40px; }
+            .header { border-bottom: 2px solid #333; padding-bottom: 20px; margin-bottom: 20px; }
+            .title { font-size: 24px; font-weight: bold; }
+            .shop-info { font-size: 12px; color: #666; margin-top: 5px; }
+            .shop-info p { margin: 2px 0; }
+            .section { margin-bottom: 20px; }
+            .section-title { font-size: 14px; font-weight: bold; text-transform: uppercase; color: #666; margin-bottom: 8px; }
+            table { width: 100%; border-collapse: collapse; }
+            .totals { font-weight: bold; }
+            .disclaimer { font-size: 10px; color: #999; margin-top: 40px; border-top: 1px solid #eee; padding-top: 10px; text-align: center; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div class="title">${shopName}</div>
+            <div class="shop-info">
+              <p>${shopAddress} | Phone: ${shopPhone}</p>
+              <p>Excise License: ${shopLicense}</p>
+            </div>
+          </div>
+          <div class="section">
+            <div class="section-title">Order Info</div>
+            <p><strong>Order ID:</strong> ${order.id}</p>
+            <p><strong>Date:</strong> ${new Date(order.createdAt).toLocaleString()}</p>
+            <p><strong>Status:</strong> ${order.status} · <strong>Payment:</strong> ${order.paymentType} (${order.paymentStatus})</p>
+          </div>
+          <div class="section">
+            <div class="section-title">Customer & Delivery Details</div>
+            <p><strong>Customer:</strong> ${order.customerName}</p>
+            <p><strong>Phone:</strong> ${order.phone}</p>
+            <p><strong>Address:</strong> ${order.deliveryAddress}, Pincode ${order.pincode}</p>
+          </div>
+          <div class="section">
+            <div class="section-title">Items</div>
+            <table>
+              ${itemsHtml}
+              <tr class="totals">
+                <td style="padding: 12px 0;">Total Amount</td>
+                <td style="padding: 12px 0; text-align: right;">₹${order.totalAmount.toFixed(0)}</td>
+              </tr>
+            </table>
+          </div>
+          <div class="disclaimer">
+            <p>Warning: Consumption of alcohol is injurious to health. Drink responsibly. 21+ only.</p>
+          </div>
+          <script>
+            window.onload = function() { window.print(); window.close(); }
+          </script>
+        </body>
+      </html>
+    `;
+
+    printWindow.document.open();
+    printWindow.document.write(html);
+    printWindow.document.close();
+  }
+
   if (loading) {
     return (
       <Container className="py-8">
@@ -143,11 +259,19 @@ export function OrderDetailPage() {
           </div>
 
           <div className="rounded-rs-lg border border-rs-outline-variant bg-rs-surface-lowest p-6">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between flex-wrap gap-2">
               <h2 className="font-display text-lg font-semibold text-rs-on-surface">Customer & Delivery Details</h2>
-              <Button variant="ghost" size="sm" onClick={copyDeliveryDetails}>
-                {copied ? 'Copied!' : 'Copy Details'}
-              </Button>
+              <div className="flex gap-2">
+                <Button variant="ghost" size="sm" onClick={copyDeliveryDetails}>
+                  {copied ? 'Copied!' : 'Copy'}
+                </Button>
+                <Button variant="ghost" size="sm" onClick={shareViaWhatsApp}>
+                  WhatsApp/SMS
+                </Button>
+                <Button variant="ghost" size="sm" onClick={printInvoice}>
+                  Print PDF
+                </Button>
+              </div>
             </div>
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
               <div>

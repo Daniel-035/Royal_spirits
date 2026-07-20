@@ -6,6 +6,7 @@ interface AuthContextValue {
   admin: Admin | null;
   loading: boolean;
   login: (username: string, password: string) => Promise<void>;
+  register: (payload: any) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -28,13 +29,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setAdmin(result);
   }
 
+  async function register(payload: any) {
+    const result = await api.post<Admin>('/auth/admin/register', payload);
+    setAdmin(result);
+  }
+
   async function logout() {
     await api.post('/auth/admin/logout');
     setAdmin(null);
   }
 
   return (
-    <AuthContext.Provider value={{ admin, loading, login, logout }}>
+    <AuthContext.Provider value={{ admin, loading, login, register, logout }}>
       {children}
     </AuthContext.Provider>
   );

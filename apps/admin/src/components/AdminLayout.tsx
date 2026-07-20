@@ -8,6 +8,7 @@ const NAV = [
   { to: '/orders', label: 'Orders' },
   { to: '/conversations', label: 'WhatsApp' },
   { to: '/zones', label: 'Delivery Zones' },
+  { to: '/profile', label: 'My Profile' },
 ];
 
 export function AdminLayout() {

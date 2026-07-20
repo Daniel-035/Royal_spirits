@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Button, Input, Container } from '@royal-spirits/ui';
 import { useAuth } from '../lib/auth';
 
@@ -52,6 +52,17 @@ export function LoginPage() {
               {submitting ? 'Signing in...' : 'Sign in'}
             </Button>
           </form>
+          <div className="mt-6 flex flex-col items-center gap-2 text-xs">
+            <Link to="/forgot-password" className="text-rs-secondary hover:underline">
+              Forgot password?
+            </Link>
+            <p className="text-rs-on-surface-variant">
+              Don't have an admin account?{' '}
+              <Link to="/register" className="text-rs-secondary font-semibold hover:underline">
+                Register
+              </Link>
+            </p>
+          </div>
         </div>
       </Container>
     </div>

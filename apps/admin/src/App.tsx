@@ -2,6 +2,9 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './lib/auth';
 import { AdminLayout } from './components/AdminLayout';
 import { LoginPage } from './pages/LoginPage';
+import { RegisterPage } from './pages/RegisterPage';
+import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
+import { ProfilePage } from './pages/ProfilePage';
 import { DashboardPage } from './pages/DashboardPage';
 import { ProductsPage } from './pages/ProductsPage';
 import { ProductFormPage } from './pages/ProductFormPage';
@@ -36,6 +39,7 @@ function ProtectedRoutes() {
         <Route path="/orders/:id" element={<OrderDetailPage />} />
         <Route path="/conversations" element={<ConversationsPage />} />
         <Route path="/zones" element={<ZonesPage />} />
+        <Route path="/profile" element={<ProfilePage />} />
       </Route>
     </Routes>
   );
@@ -47,6 +51,8 @@ export function App() {
       <div className="flex min-h-screen flex-col bg-rs-surface">
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/*" element={<ProtectedRoutes />} />
         </Routes>
         <footer className="border-t border-rs-outline-variant py-3">

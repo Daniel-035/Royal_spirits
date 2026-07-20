@@ -92,10 +92,14 @@ model OrderItem {
 }
 
 model Admin {
-  id           String   @id @default(uuid())
-  username     String   @unique
-  passwordHash String
-  createdAt    DateTime @default(now())
+  id            String   @id @default(uuid())
+  username      String   @unique
+  passwordHash  String
+  businessName  String?
+  licenseNumber String?
+  shopAddress   String?
+  phone         String?
+  createdAt     DateTime @default(now())
 
   @@map("admins")
 }
@@ -151,4 +155,15 @@ model WhatsAppEventLog {
 
   @@index([fromPhone])
   @@map("whatsapp_event_log")
+}
+
+model PasswordReset {
+  id        String   @id @default(uuid())
+  email     String
+  token     String
+  expiresAt DateTime
+  consumed  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@map("password_resets")
 }
