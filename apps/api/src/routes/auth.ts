@@ -27,7 +27,14 @@ authRouter.post('/admin/login', async (req: Request, res: Response, next: NextFu
     }
     const token = signAdminToken({ sub: admin.id, username: admin.username });
     setAuthCookie(res, env.adminCookieName, token);
-    res.json({ id: admin.id, username: admin.username });
+    res.json({
+      id: admin.id,
+      username: admin.username,
+      businessName: admin.businessName,
+      licenseNumber: admin.licenseNumber,
+      shopAddress: admin.shopAddress,
+      phone: admin.phone,
+    });
   } catch (err) {
     next(err);
   }
@@ -40,7 +47,14 @@ authRouter.get('/admin/me', requireAdmin, async (req: Request, res: Response, ne
       clearAuthCookie(res, env.adminCookieName);
       return next(unauthorized('Admin not found'));
     }
-    res.json({ id: admin.id, username: admin.username });
+    res.json({
+      id: admin.id,
+      username: admin.username,
+      businessName: admin.businessName,
+      licenseNumber: admin.licenseNumber,
+      shopAddress: admin.shopAddress,
+      phone: admin.phone,
+    });
   } catch (err) {
     next(err);
   }
@@ -79,21 +93,43 @@ authRouter.post('/admin/register', async (req: Request, res: Response, next: Nex
 
 authRouter.put('/admin/profile', requireAdmin, async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { currentPassword, newPassword } = updateAdminProfileSchema.parse(req.body);
+    const { businessName, licenseNumber, shopAddress, phone, currentPassword, newPassword } = updateAdminProfileSchema.parse(req.body);
     const admin = await prisma.admin.findUnique({ where: { id: req.admin!.sub } });
     if (!admin) {
       return next(unauthorized('Admin not found'));
     }
-    const ok = await bcrypt.compare(currentPassword, admin.passwordHash);
-    if (!ok) {
-      return next(badRequest('Invalid current password.'));
+
+    const updateData: any = {
+      businessName,
+      licenseNumber,
+      shopAddress,
+      phone,
+    };
+
+    if (newPassword && newPassword.trim() !== '') {
+      if (!currentPassword) {
+        return next(badRequest('Current password is required to set a new password.'));
+      }
+      const ok = await bcrypt.compare(currentPassword, admin.passwordHash);
+      if (!ok) {
+        return next(badRequest('Invalid current password.'));
+      }
+      updateData.passwordHash = await bcrypt.hash(newPassword, 10);
     }
-    const passwordHash = await bcrypt.hash(newPassword, 10);
+
     const updated = await prisma.admin.update({
       where: { id: admin.id },
-      data: { passwordHash },
+      data: updateData,
     });
-    res.json({ id: updated.id, username: updated.username });
+
+    res.json({
+      id: updated.id,
+      username: updated.username,
+      businessName: updated.businessName,
+      licenseNumber: updated.licenseNumber,
+      shopAddress: updated.shopAddress,
+      phone: updated.phone,
+    });
   } catch (err) {
     next(err);
   }
